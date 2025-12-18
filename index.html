@@ -9,14 +9,13 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&family=Space+Grotesk:wght@300;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     
-    <!-- Babel for Browser-side JSX/TSX compilation -->
+    <!-- Babel Standalone for real-time TSX/React transpilation -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <style>
         :root {
             --primary: #8b5cf6;
             --secondary: #ec4899;
-            --accent: #06b6d4;
         }
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
@@ -24,6 +23,7 @@
             color: #f8fafc;
             margin: 0;
             min-height: 100vh;
+            overflow-x: hidden;
         }
         .font-display { font-family: 'Space Grotesk', sans-serif; }
         .font-mono { font-family: 'JetBrains Mono', monospace; }
@@ -74,10 +74,10 @@
     </style>
 
     <script>
-        // Ensure process.env is available for the SDK
+        // Critical: Provide the process object before any module loads to satisfy SDK requirements
         window.process = {
             env: {
-                API_KEY: "" // Handled by environment injection
+                API_KEY: "" // Handled by injection or defaults to ""
             }
         };
     </script>
@@ -97,15 +97,15 @@
 </head>
 <body class="scanlines">
     <div id="root">
-        <div class="init-loader">
+        <div class="init-loader" id="boot-screen">
             <div class="loading-ring"></div>
             <div style="text-align: center;">
-                <p style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #8b5cf6; text-transform: uppercase; letter-spacing: 0.3em; animation: pulse-slow 2s infinite;">System.Booting(Neural_Humor)</p>
+                <p style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #8b5cf6; text-transform: uppercase; letter-spacing: 0.3em; animation: pulse-slow 2s infinite;">GiggleGlitch_v3.5_Booting...</p>
             </div>
         </div>
     </div>
 
-    <!-- Consolidated entry point to fix GitHub Pages import issues -->
+    <!-- index.tsx contains the entire app logic for zero-config GitHub Pages deployment -->
     <script type="text/babel" data-type="module" src="index.tsx" data-presets="typescript,react"></script>
 </body>
 </html>

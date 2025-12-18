@@ -2,13 +2,8 @@ import React, { useState, useCallback, useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import { GoogleGenAI, Type } from "@google/genai";
 
-// --- Types ---
-export interface Joke {
-  setup: string;
-  punchline: string;
-}
-
-export enum Vibe {
+// --- Types & Enums ---
+enum Vibe {
   CLEVER = 'clever',
   ABSURD = 'absurd',
   WHOLESOME = 'wholesome',
@@ -16,60 +11,62 @@ export enum Vibe {
   SURPRISE = 'surprise'
 }
 
-export interface GeneratorState {
-  joke: Joke | null;
-  loading: boolean;
-  error: string | null;
-  vibe: Vibe;
-  isFirstJoke: boolean;
+interface Joke {
+  setup: string;
+  punchline: string;
 }
 
-// --- Service ---
+// --- AI Service ---
 const generateJoke = async (vibe: Vibe): Promise<Joke> => {
   const apiKey = (window as any).process?.env?.API_KEY;
-  if (!apiKey) throw new Error("API_KEY_MISSING: Link to Neural Core failed.");
+  if (!apiKey) throw new Error("API_KEY_MISSING: The humor core needs an identity key.");
 
   const ai = new GoogleGenAI({ apiKey });
   const model = 'gemini-3-flash-preview';
   
   const personaMap: Record<string, string> = {
-    [Vibe.CLEVER]: "sharp-witted intellectual",
-    [Vibe.ABSURD]: "surrealist philosopher",
-    [Vibe.WHOLESOME]: "warm neighbor",
-    [Vibe.WITTY]: "quick-fire comedian",
-    [Vibe.SURPRISE]: "chaotic AI"
+    [Vibe.CLEVER]: "a sharp-witted intellectual with dry humor",
+    [Vibe.ABSURD]: "a surrealist who speaks in weird metaphors",
+    [Vibe.WHOLESOME]: "a warm, kind mentor making people smile",
+    [Vibe.WITTY]: "a fast-talking stand-up comedian",
+    [Vibe.SURPRISE]: "a chaotic humor algorithm"
   };
 
   const selectedVibe = vibe === Vibe.SURPRISE 
     ? [Vibe.CLEVER, Vibe.ABSURD, Vibe.WHOLESOME, Vibe.WITTY][Math.floor(Math.random() * 4)]
     : vibe;
 
-  const response = await ai.models.generateContent({
-    model,
-    contents: `Protocol: ${selectedVibe} humor request.`,
-    config: {
-      systemInstruction: `You are a ${personaMap[vibe]}. Generate a high-quality 2-line joke. Return JSON with 'setup' and 'punchline'.`,
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          setup: { type: Type.STRING },
-          punchline: { type: Type.STRING }
-        },
-        required: ["setup", "punchline"]
+  try {
+    const response = await ai.models.generateContent({
+      model,
+      contents: `Request: ${selectedVibe} joke.`,
+      config: {
+        systemInstruction: `You are ${personaMap[vibe]}. Generate a high-quality 2-line joke. Format: JSON with 'setup' and 'punchline'.`,
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            setup: { type: Type.STRING },
+            punchline: { type: Type.STRING }
+          },
+          required: ["setup", "punchline"]
+        }
       }
-    }
-  });
+    });
 
-  const text = response.text;
-  if (!text) throw new Error("Empty core response.");
-  return JSON.parse(text) as Joke;
+    const text = response.text;
+    if (!text) throw new Error("Null frequency response.");
+    return JSON.parse(text) as Joke;
+  } catch (error) {
+    console.error("Neural Error:", error);
+    throw new Error("Humor matrix unstable. Please recalibrate.");
+  }
 };
 
 // --- Components ---
 
-const VibeSelector: React.FC<{ currentVibe: Vibe; onVibeChange: (v: Vibe) => void }> = ({ currentVibe, onVibeChange }) => {
-  const vibes = [
+const VibeSelector: React.FC<{ current: Vibe; onChange: (v: Vibe) => void }> = ({ current, onChange }) => {
+  const options = [
     { id: Vibe.CLEVER, label: 'Clever', emoji: '🧠', color: 'bg-indigo-500' },
     { id: Vibe.WITTY, label: 'Witty', emoji: '✨', color: 'bg-cyan-500' },
     { id: Vibe.ABSURD, label: 'Absurd', emoji: '🌀', color: 'bg-orange-500' },
@@ -78,23 +75,25 @@ const VibeSelector: React.FC<{ currentVibe: Vibe; onVibeChange: (v: Vibe) => voi
   ];
 
   return (
-    <div className="flex flex-wrap justify-center gap-3 px-4 py-6 mb-4">
-      {vibes.map((v) => (
+    <div className="flex flex-wrap justify-center gap-3 px-4 py-6">
+      {options.map((opt) => (
         <button
-          key={v.id}
-          onClick={() => onVibeChange(v.id)}
-          className={`group relative flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-bold transition-all duration-300 ${
-            currentVibe === v.id
-              ? `text-white scale-105 shadow-[0_0_20px_rgba(139,92,246,0.3)]`
-              : 'text-slate-400 hover:text-white hover:bg-white/5 border border-white/5'
+          key={opt.id}
+          onClick={() => onChange(opt.id)}
+          className={`relative flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all duration-300 ${
+            current === opt.id
+              ? `text-white scale-105 shadow-xl`
+              : 'text-slate-400 hover:text-white bg-white/5 border border-white/5'
           }`}
         >
-          {currentVibe === v.id && (
-            <div className={`absolute inset-0 ${v.color} rounded-full -z-10 animate-pulse opacity-20`}></div>
+          {current === opt.id && (
+            <div className={`absolute inset-0 ${opt.color} rounded-full -z-10 animate-pulse opacity-40`}></div>
           )}
-          <div className={`absolute inset-0 ${v.color} rounded-full -z-20 transition-opacity ${currentVibe === v.id ? 'opacity-100' : 'opacity-0'}`}></div>
-          <span className="text-lg">{v.emoji}</span>
-          <span>{v.label}</span>
+          {current === opt.id && (
+            <div className={`absolute inset-0 ${opt.color} rounded-full -z-20`}></div>
+          )}
+          <span>{opt.emoji}</span>
+          <span>{opt.label}</span>
         </button>
       ))}
     </div>
@@ -102,49 +101,49 @@ const VibeSelector: React.FC<{ currentVibe: Vibe; onVibeChange: (v: Vibe) => voi
 };
 
 const JokeCard: React.FC<{ joke: Joke | null; loading: boolean }> = ({ joke, loading }) => {
-  const [reveal, setReveal] = useState(false);
+  const [showPunchline, setShowPunchline] = useState(false);
   const [step, setStep] = useState(0);
-  const steps = ["Injecting sarcasm...", "Verifying safety...", "Finalizing delivery..."];
+  const loadingSteps = ["Verifying sarcasm...", "Syncing laugh tracks...", "Injecting wit..."];
 
   useEffect(() => {
     if (loading) {
-      setReveal(false);
-      const int = setInterval(() => setStep(s => (s + 1) % steps.length), 800);
-      return () => clearInterval(int);
+      setShowPunchline(false);
+      const interval = setInterval(() => setStep(s => (s + 1) % loadingSteps.length), 800);
+      return () => clearInterval(interval);
     }
   }, [loading]);
 
   useEffect(() => {
     if (joke) {
-      const t = setTimeout(() => setReveal(true), 1200);
-      return () => clearTimeout(t);
+      const timer = setTimeout(() => setShowPunchline(true), 1500);
+      return () => clearTimeout(timer);
     }
   }, [joke]);
 
   if (loading) return (
-    <div className="w-full max-w-2xl min-h-[350px] flex flex-col items-center justify-center p-10 glass rounded-[3rem] border-violet-500/20 shadow-2xl relative overflow-hidden">
-      <div className="w-20 h-20 border-2 border-violet-500/20 border-t-violet-500 rounded-full animate-spin mb-8"></div>
-      <p className="font-mono text-violet-400 text-xs tracking-widest uppercase animate-pulse">{steps[step]}</p>
+    <div className="w-full max-w-2xl min-h-[300px] flex flex-col items-center justify-center p-12 glass rounded-[3rem] border-violet-500/20 shadow-2xl">
+      <div className="w-16 h-16 border-2 border-violet-500/20 border-t-violet-500 rounded-full animate-spin mb-6"></div>
+      <p className="font-mono text-violet-400 text-xs tracking-[0.3em] uppercase animate-pulse">{loadingSteps[step]}</p>
     </div>
   );
 
   if (!joke) return (
-    <div className="w-full max-w-2xl min-h-[350px] flex flex-col items-center justify-center p-12 text-center glass rounded-[3rem] border-white/10">
-      <div className="mb-6 text-5xl animate-bounce">✨</div>
-      <h2 className="text-3xl font-display font-bold text-white mb-4">Neural Ready.</h2>
-      <p className="text-slate-400 max-w-xs mx-auto">Pick a frequency and initiate humor transmission.</p>
+    <div className="w-full max-w-2xl min-h-[300px] flex flex-col items-center justify-center p-12 text-center glass rounded-[3rem] border-white/10">
+      <div className="text-5xl mb-6 opacity-50">⚡</div>
+      <h2 className="text-3xl font-display font-bold text-white mb-2">Matrix Idle.</h2>
+      <p className="text-slate-400 max-w-xs mx-auto">Select a frequency and initialize humor transmission.</p>
     </div>
   );
 
   return (
-    <div className="w-full max-w-2xl p-10 md:p-16 glass rounded-[3rem] border-white/10 shadow-2xl relative group overflow-hidden">
-      <div className="space-y-12 relative z-10">
-        <h3 className="text-2xl md:text-4xl font-display font-bold text-white leading-tight animate-in fade-in slide-in-from-bottom-6 duration-700">
+    <div className="w-full max-w-2xl p-12 md:p-16 glass rounded-[3rem] border-white/10 shadow-2xl relative group overflow-hidden transition-all hover:border-violet-500/30">
+      <div className="space-y-12">
+        <h3 className="text-2xl md:text-4xl font-display font-bold text-white leading-tight animate-in fade-in slide-in-from-bottom-4 duration-700">
           {joke.setup}
         </h3>
-        <div className={`transition-all duration-1000 transform ${reveal ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8 blur-sm'}`}>
-          <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-violet-500/30 to-transparent mb-6"></div>
-          <p className="text-2xl md:text-4xl font-display font-black bg-gradient-to-br from-white via-violet-100 to-pink-200 bg-clip-text text-transparent italic tracking-tight leading-snug">
+        <div className={`transition-all duration-1000 transform ${showPunchline ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8 blur-sm'}`}>
+          <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-violet-500/40 to-transparent mb-8"></div>
+          <p className="text-2xl md:text-4xl font-display font-black bg-gradient-to-br from-white to-violet-300 bg-clip-text text-transparent tracking-tight leading-snug">
             {joke.punchline}
           </p>
         </div>
@@ -154,65 +153,65 @@ const JokeCard: React.FC<{ joke: Joke | null; loading: boolean }> = ({ joke, loa
   );
 };
 
-// --- Main App ---
+// --- App Root ---
 
 const App: React.FC = () => {
-  const [state, setState] = useState<GeneratorState>({
-    joke: null,
-    loading: false,
-    error: null,
-    vibe: Vibe.SURPRISE,
-    isFirstJoke: true
-  });
+  const [vibe, setVibe] = useState(Vibe.SURPRISE);
+  const [joke, setJoke] = useState<Joke | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const fetchJoke = useCallback(async () => {
-    setState(p => ({ ...p, loading: true, error: null }));
+  const fetchJoke = async () => {
+    setLoading(true);
+    setError(null);
     try {
-      const res = await generateJoke(state.vibe);
-      setState(p => ({ ...p, joke: res, loading: false, isFirstJoke: false }));
-    } catch (err: any) {
-      setState(p => ({ ...p, loading: false, error: err.message }));
+      const result = await generateJoke(vibe);
+      setJoke(result);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
     }
-  }, [state.vibe]);
+  };
 
   const copy = () => {
-    if (!state.joke) return;
-    navigator.clipboard.writeText(`${state.joke.setup}\n\n${state.joke.punchline}`);
+    if (joke) navigator.clipboard.writeText(`${joke.setup}\n\n${joke.punchline}`);
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 md:p-12 relative">
+    <div className="min-h-screen flex flex-col items-center justify-center p-6 relative">
       <div className="fixed inset-0 -z-10 bg-[#020617]">
-        <div className="absolute top-[-10%] left-[-10%] w-[60vw] h-[60vh] bg-violet-600/5 blur-[120px] rounded-full"></div>
-        <div className="absolute bottom-[-10%] right-[-10%] w-[60vw] h-[60vh] bg-pink-600/5 blur-[120px] rounded-full"></div>
+        <div className="absolute top-[-10%] left-[-10%] w-[60vw] h-[60vh] bg-violet-600/5 blur-[120px] rounded-full animate-pulse"></div>
+        <div className="absolute bottom-[-10%] right-[-10%] w-[60vw] h-[60vh] bg-pink-600/5 blur-[120px] rounded-full animate-pulse [animation-delay:2s]"></div>
       </div>
 
-      <header className="text-center mb-12 relative z-10">
-        <h1 className="text-6xl md:text-8xl font-display font-black text-white mb-4 tracking-tighter leading-none">
+      <header className="text-center mb-16">
+        <h1 className="text-6xl md:text-8xl font-display font-black text-white mb-4 tracking-tighter leading-none select-none">
           Giggle<span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-pink-400">Glitch</span>
         </h1>
-        <p className="text-slate-400 text-lg md:text-xl font-light">Precision-engineered AI humor for your neural circuits.</p>
+        <p className="text-slate-400 text-lg font-light tracking-wide">Neural-optimized humor for sophisticated humans.</p>
       </header>
 
-      <main className="w-full flex flex-col items-center gap-8 relative z-10">
-        <VibeSelector currentVibe={state.vibe} onVibeChange={(v) => setState(p => ({ ...p, vibe: v }))} />
-        <JokeCard joke={state.joke} loading={state.loading} />
+      <main className="w-full flex flex-col items-center gap-10">
+        <VibeSelector current={vibe} onChange={setVibe} />
+        
+        <JokeCard joke={joke} loading={loading} />
 
-        {state.error && (
-          <div className="px-6 py-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-xs font-mono">
-            {state.error}
+        {error && (
+          <div className="px-6 py-3 bg-red-500/10 border border-red-500/30 rounded-2xl text-red-400 text-xs font-mono">
+            ⚠ {error}
           </div>
         )}
 
-        <div className="flex gap-4 w-full max-w-sm">
+        <div className="flex gap-4 w-full max-w-xs">
           <button
             onClick={fetchJoke}
-            disabled={state.loading}
-            className="flex-1 px-8 py-5 bg-white text-black font-black rounded-full hover:scale-105 active:scale-95 transition-all shadow-xl uppercase tracking-widest text-xs disabled:opacity-50"
+            disabled={loading}
+            className="flex-1 px-8 py-5 bg-white text-black font-black rounded-full hover:scale-105 active:scale-95 transition-all shadow-2xl uppercase tracking-[0.2em] text-[10px] disabled:opacity-50"
           >
-            {state.isFirstJoke ? 'Initialize' : 'Another Glitch'}
+            {joke ? 'Regenerate' : 'Initialize'}
           </button>
-          {state.joke && (
+          {joke && (
             <button onClick={copy} className="p-5 glass text-white rounded-full hover:bg-white/10 transition-all border-white/10">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
             </button>
@@ -221,7 +220,7 @@ const App: React.FC = () => {
       </main>
 
       <footer className="mt-20 opacity-30 text-[9px] font-mono tracking-[0.5em] text-white uppercase text-center">
-        Neural Core 3.5.2 • Deploy Status: Online
+        Neural Core v3.5.2 • System: Stable
       </footer>
     </div>
   );
