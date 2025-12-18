@@ -1,4 +1,5 @@
-import React, { useState, useCallback } from 'react';
+
+import React, { useState, useCallback, useEffect } from 'react';
 import { generateJoke } from './geminiService.ts';
 import { Vibe, GeneratorState } from './types.ts';
 import { JokeCard } from './components/JokeCard.tsx';
@@ -12,6 +13,21 @@ const App: React.FC = () => {
     vibe: Vibe.SURPRISE,
     isFirstJoke: true
   });
+  const [isKeySelected, setIsKeySelected] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const checkKey = async () => {
+      const hasKey = await (window as any).aistudio.hasSelectedApiKey();
+      setIsKeySelected(hasKey);
+    };
+    checkKey();
+  }, []);
+
+  const handleSelectKey = async () => {
+    await (window as any).aistudio.openSelectKey();
+    // Proceed assuming success per instructions to mitigate race condition
+    setIsKeySelected(true);
+  };
 
   const fetchJoke = useCallback(async () => {
     setState(prev => ({ ...prev, loading: true, error: null }));
@@ -24,6 +40,10 @@ const App: React.FC = () => {
         isFirstJoke: false 
       }));
     } catch (err: any) {
+      // If the request fails because the key is missing or invalid, prompt again
+      if (err.message?.includes("Requested entity was not found")) {
+        setIsKeySelected(false);
+      }
       setState(prev => ({ ...prev, loading: false, error: err.message }));
     }
   }, [state.vibe]);
@@ -36,8 +56,51 @@ const App: React.FC = () => {
     if (!state.joke) return;
     const text = `${state.joke.setup}\n\n${state.joke.punchline}\n\n— Via GiggleGlitch AI`;
     navigator.clipboard.writeText(text);
-    // Could add a toast here
   };
+
+  // Loading state for initial check
+  if (isKeySelected === null) {
+    return (
+      <div className="min-h-screen bg-[#020617] flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-violet-500/20 border-t-violet-500 rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  // Key Selection Gate
+  if (isKeySelected === false) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-[#020617] relative overflow-hidden">
+        <div className="absolute top-[-20%] left-[-10%] w-[70vw] h-[70vh] bg-violet-600/10 blur-[150px] rounded-full animate-pulse"></div>
+        <div className="glass p-12 rounded-[3rem] border-white/10 max-w-lg w-full text-center relative z-10 shadow-2xl">
+          <div className="w-20 h-20 bg-violet-500/10 rounded-3xl flex items-center justify-center mx-auto mb-8 border border-violet-500/20">
+            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="1.5">
+              <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+          </div>
+          <h2 className="text-4xl font-display font-black text-white mb-4">Neural Authorization</h2>
+          <p className="text-slate-400 mb-10 leading-relaxed">
+            To initialize the high-frequency humor matrix, please authenticate with your Gemini API key. 
+            A paid Google Cloud project is required for optimal neural performance.
+          </p>
+          <button
+            onClick={handleSelectKey}
+            className="w-full py-5 bg-white text-black font-black rounded-full hover:scale-105 active:scale-95 transition-all shadow-2xl uppercase tracking-[0.2em] text-xs mb-6"
+          >
+            Connect API Key
+          </button>
+          <a 
+            href="https://ai.google.dev/gemini-api/docs/billing" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-violet-400 text-[10px] uppercase tracking-widest hover:text-violet-300 transition-colors"
+          >
+            Learn about billing & keys →
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 md:p-12 relative overflow-hidden">
@@ -96,7 +159,7 @@ const App: React.FC = () => {
                 </svg>
               )}
               <span className="uppercase tracking-[0.2em] text-xs">
-                {state.isFirstJoke ? 'Initialize Humour' : 'Execute Another'}
+                {state.isFirstJoke ? 'Initialize Humor' : 'Execute Another'}
               </span>
             </div>
           </button>
@@ -119,7 +182,7 @@ const App: React.FC = () => {
       <footer className="mt-24 mb-8 text-slate-600 font-mono text-[9px] uppercase tracking-[0.5em] flex flex-col items-center gap-4 text-center">
         <div className="w-12 h-[1px] bg-slate-800"></div>
         <div>
-          Neural Core 3.5.2 • Developed with Gemini Visionary
+          Neural Core 3.5.2 • Enhanced with Gemini Pro
         </div>
         <div className="opacity-40 max-w-xs leading-loose tracking-widest px-8">
           Warning: Prolonged exposure to high-frequency humor may cause involuntary laughter loops.
