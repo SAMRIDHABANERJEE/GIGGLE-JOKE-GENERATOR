@@ -9,6 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&family=Space+Grotesk:wght@300;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     
+    <!-- Babel Standalone for real-time TSX/React transpilation -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <style>
@@ -37,7 +38,7 @@
             z-index: 50;
             background-size: 100% 4px, 3px 100%;
             pointer-events: none;
-            opacity: 0.15;
+            opacity: 0.1;
         }
 
         .glass {
@@ -55,12 +56,16 @@
         .animate-blob {
             animation: blob-shift 10s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
         }
+
+        .text-glow {
+            text-shadow: 0 0 20px rgba(139, 92, 246, 0.4);
+        }
     </style>
 
     <script>
-        // Ensure process.env is available for the SDK without overwriting injected values
-        window.process = window.process || {};
-        window.process.env = window.process.env || {};
+        // Critical: Provide the process object before any module loads to satisfy SDK requirements.
+        // If the environment injects the key, it will be preserved here.
+        window.process = window.process || { env: {} };
     </script>
 
     <script type="importmap">
@@ -78,7 +83,7 @@
 </head>
 <body class="scanlines">
     <div id="root"></div>
-    <!-- Combined entry point to fix performance and module resolution issues -->
+    <!-- Consolidated application logic into a single entry point -->
     <script type="text/babel" data-type="module" src="index.tsx" data-presets="typescript,react"></script>
 </body>
 </html>
