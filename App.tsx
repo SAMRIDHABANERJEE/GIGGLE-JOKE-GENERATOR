@@ -1,164 +1,63 @@
 
-import React, { useState, useCallback, useRef } from 'react';
-import { generateJoke, generateJokeVisual, generateJokeSpeech, explainJoke } from './geminiService.ts';
-import { Vibe, GeneratorState } from './types.ts';
-import { JokeCard } from './components/JokeCard.tsx';
-import { VibeSelector } from './components/VibeSelector.tsx';
+import React, { useState, useEffect } from 'react';
+import { AppMode } from './types.ts';
+import JokeLab from './components/JokeLab.tsx';
+import NeuralStudio from './components/NeuralStudio.tsx';
+import GlobalChat from './components/GlobalChat.tsx';
+import LiveSync from './components/LiveSync.tsx';
 
 const App: React.FC = () => {
-  const [state, setState] = useState<GeneratorState>({
-    joke: null,
-    loading: false,
-    visualLoading: false,
-    audioLoading: false,
-    explaining: false,
-    error: null,
-    vibe: Vibe.SURPRISE,
-    topic: '',
-    isFirstJoke: true,
-    imageUrl: null,
-    audioBuffer: null
-  });
+  const [mode, setMode] = useState<AppMode>('JOKE_LAB');
 
-  const [explanation, setExplanation] = useState<string | null>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
-
-  const decodeAudio = async (base64: string) => {
-    if (!audioContextRef.current) {
-      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+  useEffect(() => {
+    // Reveal app
+    const loader = document.getElementById('boot-screen');
+    if (loader) {
+      loader.style.opacity = '0';
+      setTimeout(() => loader.style.display = 'none', 500);
     }
-    const ctx = audioContextRef.current;
-    const binaryString = atob(base64);
-    const len = binaryString.length;
-    const bytes = new Uint8Array(len);
-    for (let i = 0; i < len; i++) bytes[i] = binaryString.charCodeAt(i);
-    
-    const dataInt16 = new Int16Array(bytes.buffer);
-    const buffer = ctx.createBuffer(1, dataInt16.length, 24000);
-    const channelData = buffer.getChannelData(0);
-    for (let i = 0; i < dataInt16.length; i++) {
-      channelData[i] = dataInt16[i] / 32768.0;
-    }
-    return buffer;
-  };
+  }, []);
 
-  const playAudio = (buffer: AudioBuffer) => {
-    if (!audioContextRef.current) return;
-    const source = audioContextRef.current.createBufferSource();
-    source.buffer = buffer;
-    source.connect(audioContextRef.current.destination);
-    source.start();
-  };
-
-  const fetchJoke = useCallback(async () => {
-    setState(prev => ({ ...prev, loading: true, error: null, imageUrl: null, audioBuffer: null }));
-    setExplanation(null);
-    try {
-      const newJoke = await generateJoke(state.vibe, state.topic);
-      setState(prev => ({ ...prev, joke: newJoke, loading: false, isFirstJoke: false, visualLoading: true }));
-      
-      // Secondary intelligence: Generate Visual
-      try {
-        const visual = await generateJokeVisual(newJoke);
-        setState(prev => ({ ...prev, imageUrl: visual, visualLoading: false }));
-      } catch (e) {
-        setState(prev => ({ ...prev, visualLoading: false }));
-      }
-    } catch (err: any) {
-      setState(prev => ({ ...prev, loading: false, error: err.message }));
-    }
-  }, [state.vibe, state.topic]);
-
-  const handleAudio = async () => {
-    if (!state.joke) return;
-    if (state.audioBuffer) {
-      playAudio(state.audioBuffer);
-      return;
-    }
-
-    setState(prev => ({ ...prev, audioLoading: true }));
-    try {
-      const base64 = await generateJokeSpeech(`${state.joke.setup}. ${state.joke.punchline}`, state.vibe);
-      const buffer = await decodeAudio(base64);
-      setState(prev => ({ ...prev, audioLoading: false, audioBuffer: buffer }));
-      playAudio(buffer);
-    } catch (e) {
-      setState(prev => ({ ...prev, audioLoading: false }));
-    }
-  };
-
-  const handleExplain = async () => {
-    if (!state.joke) return;
-    setState(prev => ({ ...prev, explaining: true }));
-    try {
-      const text = await explainJoke(state.joke);
-      setExplanation(text);
-    } finally {
-      setState(prev => ({ ...prev, explaining: false }));
-    }
-  };
+  const navItems = [
+    { id: 'JOKE_LAB', label: 'Joke Lab', icon: '🎭' },
+    { id: 'NEURAL_STUDIO', label: 'Studio', icon: '🎨' },
+    { id: 'GLOBAL_CHAT', label: 'Chat', icon: '💬' },
+    { id: 'LIVE_SYNC', label: 'Live', icon: '🎙️' },
+  ];
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 md:p-12 relative overflow-x-hidden">
-      <div className="fixed inset-0 -z-10 bg-slate-950">
-        <div className="absolute top-[-10%] left-[-10%] w-[80vw] h-[80vh] bg-violet-600/10 blur-[180px] rounded-full animate-pulse"></div>
-        <div className="absolute bottom-[-10%] right-[-10%] w-[60vw] h-[60vh] bg-pink-600/5 blur-[150px] rounded-full"></div>
+    <div className="min-h-screen bg-[#020617] text-white flex flex-col md:flex-row overflow-hidden">
+      {/* Dynamic Background */}
+      <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
+        <div className="absolute top-[-10%] left-[-10%] w-[80vw] h-[80vh] bg-violet-600/5 blur-[150px] rounded-full animate-pulse"></div>
+        <div className="absolute bottom-[-10%] right-[-10%] w-[60vw] h-[60vh] bg-pink-600/5 blur-[150px] rounded-full [animation-delay:2s]"></div>
       </div>
 
-      <header className="text-center mb-16 animate-in fade-in duration-1000">
-        <h1 className="text-6xl md:text-9xl font-display font-black text-white mb-6 tracking-tighter select-none">
-          Giggle<span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-pink-400 to-indigo-400">Glitch</span>
-        </h1>
-        <p className="text-slate-400 text-lg md:text-xl font-light max-w-xl mx-auto opacity-80">
-          Advanced Multimodal Neural Humor Matrix.
-        </p>
-      </header>
+      {/* Sidebar Navigation */}
+      <nav className="w-full md:w-24 bg-slate-900/50 backdrop-blur-xl border-b md:border-b-0 md:border-r border-white/5 flex md:flex-col items-center justify-around md:justify-center gap-8 py-6 z-50">
+        <div className="hidden md:block mb-12 text-2xl font-black italic text-violet-500">G.G</div>
+        {navItems.map(item => (
+          <button
+            key={item.id}
+            onClick={() => setMode(item.id as AppMode)}
+            className={`flex flex-col items-center gap-1 group transition-all ${mode === item.id ? 'text-violet-400 scale-110' : 'text-slate-500 hover:text-white'}`}
+          >
+            <span className="text-2xl">{item.icon}</span>
+            <span className="text-[10px] uppercase font-bold tracking-tighter">{item.label}</span>
+            {mode === item.id && <div className="w-1 h-1 bg-violet-400 rounded-full mt-1 animate-ping"></div>}
+          </button>
+        ))}
+      </nav>
 
-      <main className="w-full flex flex-col items-center gap-10 max-w-4xl z-10">
-        <div className="w-full max-w-md space-y-4">
-          <VibeSelector currentVibe={state.vibe} onVibeChange={(v) => setState(p => ({...p, vibe: v}))} />
-          
-          <div className="relative group">
-            <input 
-              type="text" 
-              placeholder="Inject Neural Topic (e.g. quantum physics, cats, coding)"
-              className="w-full px-8 py-5 glass rounded-full text-white placeholder:text-slate-600 outline-none border border-white/10 focus:border-violet-500/50 transition-all text-sm font-mono tracking-tight"
-              value={state.topic}
-              onChange={(e) => setState(p => ({...p, topic: e.target.value}))}
-            />
-            <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-700 uppercase tracking-widest hidden group-focus-within:block animate-pulse">Probe Active</div>
-          </div>
+      {/* Main Stage */}
+      <main className="flex-1 relative overflow-y-auto p-4 md:p-12">
+        <div className="max-w-6xl mx-auto h-full">
+          {mode === 'JOKE_LAB' && <JokeLab />}
+          {mode === 'NEURAL_STUDIO' && <NeuralStudio />}
+          {mode === 'GLOBAL_CHAT' && <GlobalChat />}
+          {mode === 'LIVE_SYNC' && <LiveSync />}
         </div>
-
-        <JokeCard 
-          joke={state.joke} 
-          loading={state.loading} 
-          imageUrl={state.imageUrl}
-          visualLoading={state.visualLoading}
-          onAudioRequest={handleAudio}
-          audioLoading={state.audioLoading}
-          onExplainRequest={handleExplain}
-          explaining={state.explaining}
-          explanation={explanation}
-        />
-
-        {state.error && <div className="text-red-400 font-mono text-xs uppercase tracking-widest animate-bounce">⚠ {state.error}</div>}
-
-        <button
-          onClick={fetchJoke}
-          disabled={state.loading}
-          className="group relative px-12 py-6 bg-white text-black font-black rounded-full hover:scale-105 transition-all shadow-2xl disabled:opacity-50 overflow-hidden"
-        >
-          <div className="absolute inset-0 bg-gradient-to-r from-violet-200 to-pink-200 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 opacity-20"></div>
-          <span className="uppercase tracking-[0.4em] text-[10px] relative z-10">
-            {state.isFirstJoke ? 'Initialize Humor' : 'Regenerate Matrix'}
-          </span>
-        </button>
       </main>
-
-      <footer className="mt-24 text-[8px] font-mono text-slate-800 uppercase tracking-[0.8em] text-center">
-        Multimodal Neural Core v4.0.0 • Powered by Gemini AI
-      </footer>
     </div>
   );
 };
