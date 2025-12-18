@@ -2,7 +2,10 @@
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { Vibe, Joke, ImageConfig } from "./types.ts";
 
-// Helper to create a fresh AI instance with the latest key from the process env
+/**
+ * Creates a fresh AI instance. 
+ * Per guidelines: Always use new GoogleGenAI({apiKey: process.env.API_KEY});
+ */
 export const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 // --- Joke Services ---
@@ -31,20 +34,25 @@ export const generateJokeVisual = async (joke: Joke): Promise<string> => {
   const ai = getAI();
   const response = await ai.models.generateContent({
     model: 'gemini-2.5-flash-image',
-    contents: `Funny, artistic, high-quality illustration: Setup: ${joke.setup} Punchline: ${joke.punchline}. Neon cyber-noir style.`,
-    config: { imageConfig: { aspectRatio: '16:9' } }
+    contents: {
+      parts: [{ text: `A vibrant, clever illustration for this joke: Setup: ${joke.setup}, Punchline: ${joke.punchline}. Cinematic style, high resolution.` }]
+    },
+    config: {
+      imageConfig: { aspectRatio: "16:9" }
+    }
   });
-  const part = response.candidates?.[0]?.content?.parts.find(p => p.inlineData);
-  if (!part) throw new Error("Visual projection failed.");
+  
+  const part = response.candidates[0].content.parts.find(p => p.inlineData);
+  if (!part || !part.inlineData) throw new Error("No image data found in response.");
   return `data:image/png;base64,${part.inlineData.data}`;
 };
 
-// --- Image Generation & Editing ---
+// --- Image Generation & Editing (Gemini 3 Pro Image & 2.5 Flash Image) ---
 export const generateProImage = async (prompt: string, config: ImageConfig): Promise<string> => {
   const ai = getAI();
   const response = await ai.models.generateContent({
     model: 'gemini-3-pro-image-preview',
-    contents: [{ text: prompt }],
+    contents: { parts: [{ text: prompt }] },
     config: {
       imageConfig: {
         aspectRatio: config.aspectRatio,
@@ -52,8 +60,9 @@ export const generateProImage = async (prompt: string, config: ImageConfig): Pro
       }
     }
   });
+  
   const part = response.candidates[0].content.parts.find(p => p.inlineData);
-  if (!part) throw new Error("Image part missing");
+  if (!part || !part.inlineData) throw new Error("Neural projection failed to render image.");
   return `data:image/png;base64,${part.inlineData.data}`;
 };
 
@@ -69,38 +78,59 @@ export const editImage = async (base64: string, prompt: string): Promise<string>
     }
   });
   const part = response.candidates[0].content.parts.find(p => p.inlineData);
-  if (!part) throw new Error("Edited image part missing");
+  if (!part || !part.inlineData) throw new Error("Edit request failed.");
   return `data:image/png;base64,${part.inlineData.data}`;
 };
 
-// --- Video Generation ---
+// --- Video Generation (Veo 3.1) ---
 export const generateVeoVideo = async (prompt: string, imageBase64?: string): Promise<string> => {
   const ai = getAI();
-  const op = await ai.models.generateVideos({
+  const opRequest: any = {
     model: 'veo-3.1-fast-generate-preview',
-    prompt: prompt || 'An atmospheric sequence based on the input',
-    image: imageBase64 ? { imageBytes: imageBase64.split(',')[1], mimeType: 'image/png' } : undefined,
-    config: { numberOfVideos: 1, resolution: '720p', aspectRatio: '16:9' }
-  });
+    prompt: prompt || 'A cinematic masterpiece',
+    config: {
+      numberOfVideos: 1,
+      resolution: '720p',
+      aspectRatio: '16:9'
+    }
+  };
+
+  if (imageBase64) {
+    opRequest.image = {
+      imageBytes: imageBase64.split(',')[1],
+      mimeType: 'image/png'
+    };
+  }
+
+  let operation = await ai.models.generateVideos(opRequest);
   
-  let operation = op;
   while (!operation.done) {
     await new Promise(resolve => setTimeout(resolve, 10000));
     operation = await ai.operations.getVideosOperation({ operation: operation });
   }
+  
   const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
   return `${downloadLink}&key=${process.env.API_KEY}`;
 };
 
-// --- Chat & Intelligence ---
+// --- Intelligence Chat (Pro, Flash-Lite, Thinking, Grounding) ---
 export const neuralChat = async (
   message: string, 
   history: any[], 
-  options: { thinking?: boolean, search?: boolean, maps?: boolean, location?: any, media?: {data: string, type: string} }
+  options: { 
+    thinking?: boolean, 
+    search?: boolean, 
+    maps?: boolean, 
+    location?: any, 
+    media?: {data: string, type: string} 
+  }
 ) => {
   const ai = getAI();
-  const model = options.thinking ? 'gemini-3-pro-preview' : (options.maps ? 'gemini-2.5-flash' : 'gemini-3-flash-preview');
-  
+  // Selection based on task type guidelines
+  let modelName = 'gemini-3-flash-preview';
+  if (options.thinking) modelName = 'gemini-3-pro-preview';
+  if (options.maps) modelName = 'gemini-2.5-flash';
+
   const tools: any[] = [];
   if (options.search) tools.push({ googleSearch: {} });
   if (options.maps) tools.push({ googleMaps: {} });
@@ -112,7 +142,7 @@ export const neuralChat = async (
   parts.push({ text: message });
 
   const response = await ai.models.generateContent({
-    model,
+    model: modelName,
     contents: { parts },
     config: {
       tools,
@@ -129,7 +159,7 @@ export const neuralChat = async (
   };
 };
 
-// --- Audio Utilities ---
+// --- Audio Encoding/Decoding ---
 export function encode(bytes: Uint8Array) {
   let binary = '';
   for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
@@ -149,7 +179,9 @@ export async function decodeAudioData(data: Uint8Array, ctx: AudioContext, sampl
   const buffer = ctx.createBuffer(numChannels, frameCount, sampleRate);
   for (let channel = 0; channel < numChannels; channel++) {
     const channelData = buffer.getChannelData(channel);
-    for (let i = 0; i < frameCount; i++) channelData[i] = dataInt16[i * numChannels + channel] / 32768.0;
+    for (let i = 0; i < frameCount; i++) {
+      channelData[i] = dataInt16[i * numChannels + channel] / 32768.0;
+    }
   }
   return buffer;
 }

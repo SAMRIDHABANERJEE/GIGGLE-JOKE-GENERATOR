@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -9,7 +10,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&family=Space+Grotesk:wght@300;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     
-    <!-- Babel Standalone for real-time TSX/React transpilation -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <style>
@@ -28,62 +28,49 @@
         .font-display { font-family: 'Space Grotesk', sans-serif; }
         .font-mono { font-family: 'JetBrains Mono', monospace; }
 
-        .scanlines::before {
-            content: " ";
-            display: block;
-            position: fixed;
-            top: 0; left: 0; bottom: 0; right: 0;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), 
-                        linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
-            z-index: 50;
-            background-size: 100% 4px, 3px 100%;
-            pointer-events: none;
-            opacity: 0.1;
-        }
-
         .glass {
             background: rgba(15, 23, 42, 0.6);
             backdrop-filter: blur(24px);
             border: 1px solid rgba(255, 255, 255, 0.08);
         }
 
-        @keyframes blob-shift {
-            0%, 100% { transform: translate(0, 0) scale(1); }
-            33% { transform: translate(30px, -50px) scale(1.1); }
-            66% { transform: translate(-20px, 20px) scale(0.9); }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
         }
-
-        .animate-blob {
-            animation: blob-shift 10s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.02);
         }
-
-        .text-glow {
-            text-shadow: 0 0 20px rgba(139, 92, 246, 0.4);
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(139, 92, 246, 0.2);
+            border-radius: 10px;
         }
     </style>
 
     <script>
-        // Critical: Provide the process object before any module loads to satisfy SDK requirements.
-        // If the environment injects the key, it will be preserved here.
+        // Ensure process.env.API_KEY is available even if not injected yet
         window.process = window.process || { env: {} };
+        // Check for specific AI Studio globals if needed
+        window.aistudio = window.aistudio || {
+          hasSelectedApiKey: async () => !!process.env.API_KEY,
+          openSelectKey: async () => { console.log("Key selector requested"); }
+        };
     </script>
 
     <script type="importmap">
 {
   "imports": {
-    "react": "https://esm.sh/react@19.0.0",
-    "react-dom": "https://esm.sh/react-dom@19.0.0",
-    "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
-    "@google/genai": "https://esm.sh/@google/genai@1.3.0",
+    "react": "https://esm.sh/react@18.3.1",
+    "react-dom": "https://esm.sh/react-dom@18.3.1",
+    "react-dom/client": "https://esm.sh/react-dom@18.3.1/client",
+    "@google/genai": "https://esm.sh/@google/genai@0.1.1",
     "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
     "react/": "https://esm.sh/react@^19.2.3/"
   }
 }
 </script>
 </head>
-<body class="scanlines">
+<body>
     <div id="root"></div>
-    <!-- Consolidated application logic into a single entry point -->
     <script type="text/babel" data-type="module" src="index.tsx" data-presets="typescript,react"></script>
 </body>
 </html>
