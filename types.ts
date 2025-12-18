@@ -1,4 +1,3 @@
-
 export interface Joke {
   setup: string;
   punchline: string;
@@ -8,7 +7,8 @@ export enum Vibe {
   CLEVER = 'clever',
   ABSURD = 'absurd',
   WHOLESOME = 'wholesome',
-  WITTY = 'witty'
+  WITTY = 'witty',
+  SURPRISE = 'surprise'
 }
 
 export interface GeneratorState {

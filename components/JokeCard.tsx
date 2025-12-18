@@ -1,6 +1,5 @@
-
 import React, { useEffect, useState } from 'react';
-import { Joke } from '../types';
+import { Joke } from '../types.ts';
 
 interface JokeCardProps {
   joke: Joke | null;
@@ -9,54 +8,87 @@ interface JokeCardProps {
 
 export const JokeCard: React.FC<JokeCardProps> = ({ joke, loading }) => {
   const [showPunchline, setShowPunchline] = useState(false);
+  const [loadingText, setLoadingText] = useState("Scanning humor matrix...");
+
+  useEffect(() => {
+    if (loading) {
+      const phrases = [
+        "Analyzing funny particles...",
+        "Compiling punchlines...",
+        "Debugging bad moods...",
+        "Optimizing delivery...",
+        "Consulting the giggle-bot..."
+      ];
+      let i = 0;
+      const interval = setInterval(() => {
+        setLoadingText(phrases[i % phrases.length]);
+        i++;
+      }, 800);
+      return () => clearInterval(interval);
+    }
+  }, [loading]);
 
   useEffect(() => {
     if (joke) {
       setShowPunchline(false);
-      const timer = setTimeout(() => setShowPunchline(true), 1500);
+      const timer = setTimeout(() => setShowPunchline(true), 1200);
       return () => clearTimeout(timer);
     }
   }, [joke]);
 
   if (loading) {
     return (
-      <div className="w-full max-w-2xl min-h-[300px] flex flex-col items-center justify-center p-8 space-y-6">
-        <div className="w-16 h-16 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin"></div>
-        <p className="text-purple-300 font-medium animate-pulse">Polishing the punchlines...</p>
+      <div className="w-full max-w-xl min-h-[320px] flex flex-col items-center justify-center p-8 space-y-8 glass rounded-[2rem] glow-border">
+        <div className="relative">
+          <div className="w-20 h-20 border-4 border-violet-500/20 border-t-violet-500 rounded-full animate-spin"></div>
+          <div className="absolute inset-0 w-20 h-20 border-4 border-pink-500/20 border-b-pink-500 rounded-full animate-spin [animation-direction:reverse] [animation-duration:1.5s]"></div>
+        </div>
+        <p className="text-violet-300 font-display font-medium text-lg animate-pulse">{loadingText}</p>
       </div>
     );
   }
 
   if (!joke) {
     return (
-      <div className="w-full max-w-2xl min-h-[300px] flex flex-col items-center justify-center p-8 text-center glass rounded-3xl border-purple-500/20">
-        <h2 className="text-2xl font-display font-bold text-white mb-4">Feeling Tensed?</h2>
-        <p className="text-slate-400">Click the magic button below to release some endorphins.</p>
+      <div className="w-full max-w-xl min-h-[320px] flex flex-col items-center justify-center p-12 text-center glass rounded-[2rem] border-white/5 group">
+        <div className="w-20 h-20 bg-violet-500/10 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+          <span className="text-4xl">⚡</span>
+        </div>
+        <h2 className="text-3xl font-display font-bold text-white mb-4">Ready to Glitch?</h2>
+        <p className="text-slate-400 max-w-xs leading-relaxed">
+          The AI is primed with high-voltage humor. Pick a vibe and let's go.
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="w-full max-w-2xl p-10 glass rounded-[2.5rem] border-white/10 shadow-2xl relative overflow-hidden group">
-      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 via-fuchsia-500 to-pink-500 opacity-50"></div>
-      
-      <div className="space-y-12 relative z-10">
-        <div className="animate-fade-in transition-all duration-700">
-          <span className="text-xs font-bold uppercase tracking-[0.2em] text-purple-400 mb-4 block">The Setup</span>
-          <h2 className="text-2xl md:text-4xl font-display font-medium text-white leading-tight">
-            "{joke.setup}"
+    <div className="w-full max-w-xl p-8 md:p-12 glass rounded-[2.5rem] glow-border shadow-2xl relative overflow-hidden group">
+      <div className="space-y-10 relative z-10">
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <div className="flex items-center gap-2 mb-4">
+             <div className="h-[1px] w-8 bg-violet-500"></div>
+             <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-violet-400">The Setup</span>
+          </div>
+          <h2 className="text-2xl md:text-3xl font-display font-semibold text-white leading-snug">
+            {joke.setup}
           </h2>
         </div>
 
-        <div className={`transition-all duration-1000 transform ${showPunchline ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-          <span className="text-xs font-bold uppercase tracking-[0.2em] text-pink-400 mb-4 block">The Payoff</span>
-          <p className="text-xl md:text-3xl font-display font-bold bg-gradient-to-r from-purple-200 to-pink-200 bg-clip-text text-transparent italic">
-            {joke.punchline}
+        <div className={`transition-all duration-1000 delay-300 transform ${showPunchline ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-4 scale-95'}`}>
+          <div className="flex items-center gap-2 mb-4">
+             <div className="h-[1px] w-8 bg-pink-500"></div>
+             <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-pink-400">The Glitch</span>
+          </div>
+          <p className="text-xl md:text-3xl font-display font-bold bg-gradient-to-br from-white via-violet-200 to-pink-300 bg-clip-text text-transparent italic leading-tight">
+            "{joke.punchline}"
           </p>
         </div>
       </div>
 
-      <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-purple-600/10 blur-3xl rounded-full group-hover:bg-purple-600/20 transition-all duration-700"></div>
+      {/* Decorative elements */}
+      <div className="absolute top-0 right-0 p-4 opacity-20 text-4xl select-none">✨</div>
+      <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-violet-600/10 blur-[60px] rounded-full group-hover:bg-violet-600/20 transition-colors"></div>
     </div>
   );
 };
