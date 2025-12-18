@@ -74,21 +74,11 @@
     </style>
 
     <script>
-        // Critical: Provide the process object before any module loads
+        // Ensure process.env is available for the SDK
         window.process = {
             env: {
-                API_KEY: "" // Will be substituted by the host or used by geminiService
+                API_KEY: "" // Handled by environment injection
             }
-        };
-
-        // Catch and display global errors for debugging
-        window.onerror = function(msg, url, line) {
-            const container = document.getElementById('debug-log');
-            if (container) {
-                container.style.display = 'block';
-                container.innerHTML += `<div>Error: ${msg} <br/> <small>${url}:${line}</small></div>`;
-            }
-            return false;
         };
     </script>
 
@@ -111,12 +101,11 @@
             <div class="loading-ring"></div>
             <div style="text-align: center;">
                 <p style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #8b5cf6; text-transform: uppercase; letter-spacing: 0.3em; animation: pulse-slow 2s infinite;">System.Booting(Neural_Humor)</p>
-                <div id="debug-log" style="display: none; margin-top: 20px; font-family: monospace; font-size: 10px; color: #f87171; text-align: left; padding: 10px; background: rgba(0,0,0,0.5); border-radius: 8px; max-width: 80vw;"></div>
             </div>
         </div>
     </div>
 
-    <!-- Use type="text/babel" and data-type="module" to enable browser-side compilation -->
+    <!-- Consolidated entry point to fix GitHub Pages import issues -->
     <script type="text/babel" data-type="module" src="index.tsx" data-presets="typescript,react"></script>
 </body>
 </html>
