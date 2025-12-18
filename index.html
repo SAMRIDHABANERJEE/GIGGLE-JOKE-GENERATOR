@@ -38,7 +38,7 @@
             z-index: 50;
             background-size: 100% 4px, 3px 100%;
             pointer-events: none;
-            opacity: 0.2;
+            opacity: 0.15;
         }
 
         .init-loader {
@@ -52,6 +52,7 @@
             gap: 1.5rem;
             position: fixed;
             top: 0; left: 0; z-index: 100;
+            transition: opacity 0.5s ease-out, visibility 0.5s;
         }
 
         .glass {
@@ -74,12 +75,13 @@
     </style>
 
     <script>
-        // Critical: Provide the process object before any module loads to satisfy SDK requirements
-        window.process = {
-            env: {
-                API_KEY: "" // Handled by injection or defaults to ""
-            }
-        };
+        /**
+         * Robust process shim: 
+         * We ensure window.process.env exists without overwriting values 
+         * that might be injected by the hosting environment.
+         */
+        window.process = window.process || {};
+        window.process.env = window.process.env || {};
     </script>
 
     <script type="importmap">
@@ -96,16 +98,16 @@
 </script>
 </head>
 <body class="scanlines">
-    <div id="root">
-        <div class="init-loader" id="boot-screen">
-            <div class="loading-ring"></div>
-            <div style="text-align: center;">
-                <p style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #8b5cf6; text-transform: uppercase; letter-spacing: 0.3em; animation: pulse-slow 2s infinite;">GiggleGlitch_v3.5_Booting...</p>
-            </div>
+    <div id="root"></div>
+    
+    <div class="init-loader" id="boot-screen">
+        <div class="loading-ring"></div>
+        <div style="text-align: center;">
+            <p style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #8b5cf6; text-transform: uppercase; letter-spacing: 0.3em; animation: pulse-slow 2s infinite;">GiggleGlitch_v3.5_Booting...</p>
         </div>
     </div>
 
-    <!-- index.tsx contains the entire app logic for zero-config GitHub Pages deployment -->
+    <!-- Consolidated application logic -->
     <script type="text/babel" data-type="module" src="index.tsx" data-presets="typescript,react"></script>
 </body>
 </html>

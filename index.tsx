@@ -18,10 +18,8 @@ interface Joke {
 
 // --- AI Service ---
 const generateJoke = async (vibe: Vibe): Promise<Joke> => {
-  const apiKey = (window as any).process?.env?.API_KEY;
-  if (!apiKey) throw new Error("API_KEY_MISSING: The humor core needs an identity key.");
-
-  const ai = new GoogleGenAI({ apiKey });
+  // Always use new instance with current process.env.API_KEY
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const model = 'gemini-3-flash-preview';
   
   const personaMap: Record<string, string> = {
@@ -59,7 +57,7 @@ const generateJoke = async (vibe: Vibe): Promise<Joke> => {
     return JSON.parse(text) as Joke;
   } catch (error) {
     console.error("Neural Error:", error);
-    throw new Error("Humor matrix unstable. Please recalibrate.");
+    throw new Error("Humor matrix unstable. Ensure API connection is established.");
   }
 };
 
@@ -90,7 +88,7 @@ const VibeSelector: React.FC<{ current: Vibe; onChange: (v: Vibe) => void }> = (
             <div className={`absolute inset-0 ${opt.color} rounded-full -z-10 animate-pulse opacity-40`}></div>
           )}
           {current === opt.id && (
-            <div className={`absolute inset-0 ${opt.color} rounded-full -z-20`}></div>
+            <div className={`absolute inset-0 ${opt.color} rounded-full -z-20 transition-all`}></div>
           )}
           <span>{opt.emoji}</span>
           <span>{opt.label}</span>
@@ -115,7 +113,7 @@ const JokeCard: React.FC<{ joke: Joke | null; loading: boolean }> = ({ joke, loa
 
   useEffect(() => {
     if (joke) {
-      const timer = setTimeout(() => setShowPunchline(true), 1500);
+      const timer = setTimeout(() => setShowPunchline(true), 1200);
       return () => clearTimeout(timer);
     }
   }, [joke]);
@@ -129,7 +127,7 @@ const JokeCard: React.FC<{ joke: Joke | null; loading: boolean }> = ({ joke, loa
 
   if (!joke) return (
     <div className="w-full max-w-2xl min-h-[300px] flex flex-col items-center justify-center p-12 text-center glass rounded-[3rem] border-white/10">
-      <div className="text-5xl mb-6 opacity-50">⚡</div>
+      <div className="text-5xl mb-6 opacity-50 select-none">⚡</div>
       <h2 className="text-3xl font-display font-bold text-white mb-2">Matrix Idle.</h2>
       <p className="text-slate-400 max-w-xs mx-auto">Select a frequency and initialize humor transmission.</p>
     </div>
@@ -161,6 +159,15 @@ const App: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Clear boot screen when app mounts
+  useEffect(() => {
+    const boot = document.getElementById('boot-screen');
+    if (boot) {
+      boot.style.opacity = '0';
+      setTimeout(() => { boot.style.display = 'none'; }, 500);
+    }
+  }, []);
+
   const fetchJoke = async () => {
     setLoading(true);
     setError(null);
@@ -185,11 +192,11 @@ const App: React.FC = () => {
         <div className="absolute bottom-[-10%] right-[-10%] w-[60vw] h-[60vh] bg-pink-600/5 blur-[120px] rounded-full animate-pulse [animation-delay:2s]"></div>
       </div>
 
-      <header className="text-center mb-16">
+      <header className="text-center mb-16 animate-in fade-in zoom-in duration-1000">
         <h1 className="text-6xl md:text-8xl font-display font-black text-white mb-4 tracking-tighter leading-none select-none">
           Giggle<span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-pink-400">Glitch</span>
         </h1>
-        <p className="text-slate-400 text-lg font-light tracking-wide">Neural-optimized humor for sophisticated humans.</p>
+        <p className="text-slate-400 text-lg font-light tracking-wide">Neural-optimized humor for the modern human.</p>
       </header>
 
       <main className="w-full flex flex-col items-center gap-10">
@@ -198,7 +205,7 @@ const App: React.FC = () => {
         <JokeCard joke={joke} loading={loading} />
 
         {error && (
-          <div className="px-6 py-3 bg-red-500/10 border border-red-500/30 rounded-2xl text-red-400 text-xs font-mono">
+          <div className="px-6 py-3 bg-red-500/10 border border-red-500/30 rounded-2xl text-red-400 text-xs font-mono animate-bounce">
             ⚠ {error}
           </div>
         )}
@@ -212,7 +219,7 @@ const App: React.FC = () => {
             {joke ? 'Regenerate' : 'Initialize'}
           </button>
           {joke && (
-            <button onClick={copy} className="p-5 glass text-white rounded-full hover:bg-white/10 transition-all border-white/10">
+            <button onClick={copy} className="p-5 glass text-white rounded-full hover:bg-white/10 transition-all border-white/10 active:scale-90" title="Copy to clipboard">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
             </button>
           )}
@@ -220,7 +227,7 @@ const App: React.FC = () => {
       </main>
 
       <footer className="mt-20 opacity-30 text-[9px] font-mono tracking-[0.5em] text-white uppercase text-center">
-        Neural Core v3.5.2 • System: Stable
+        Neural Core v3.5.2 • System: Operational
       </footer>
     </div>
   );
