@@ -1,6 +1,8 @@
+
 export interface Joke {
   setup: string;
   punchline: string;
+  explanation?: string;
 }
 
 export enum Vibe {
@@ -11,17 +13,16 @@ export enum Vibe {
   SURPRISE = 'surprise'
 }
 
-export interface VibeTheme {
-  primary: string;
-  accent: string;
-  bgGradient: string;
-  icon: string;
-}
-
 export interface GeneratorState {
   joke: Joke | null;
   loading: boolean;
+  visualLoading: boolean;
+  audioLoading: boolean;
+  explaining: boolean;
   error: string | null;
   vibe: Vibe;
+  topic: string;
   isFirstJoke: boolean;
+  imageUrl: string | null;
+  audioBuffer: AudioBuffer | null;
 }
