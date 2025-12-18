@@ -18,14 +18,14 @@ interface Joke {
 
 // --- AI Service ---
 const generateJoke = async (vibe: Vibe): Promise<Joke> => {
-  // Always use new instance with current process.env.API_KEY
+  // Use the mandatory API key access pattern
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const model = 'gemini-3-flash-preview';
   
   const personaMap: Record<string, string> = {
     [Vibe.CLEVER]: "a sharp-witted intellectual with dry humor",
     [Vibe.ABSURD]: "a surrealist who speaks in weird metaphors",
-    [Vibe.WHOLESOME]: "a warm, kind mentor making people smile",
+    [Vibe.WHOLESOME]: "a warm, kind person making people smile",
     [Vibe.WITTY]: "a fast-talking stand-up comedian",
     [Vibe.SURPRISE]: "a chaotic humor algorithm"
   };
@@ -37,9 +37,9 @@ const generateJoke = async (vibe: Vibe): Promise<Joke> => {
   try {
     const response = await ai.models.generateContent({
       model,
-      contents: `Request: ${selectedVibe} joke.`,
+      contents: `Protocol: ${selectedVibe} joke request.`,
       config: {
-        systemInstruction: `You are ${personaMap[vibe]}. Generate a high-quality 2-line joke. Format: JSON with 'setup' and 'punchline'.`,
+        systemInstruction: `You are ${personaMap[vibe]}. Generate a high-quality 2-line joke. Return strictly JSON with 'setup' and 'punchline' keys.`,
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -53,127 +53,41 @@ const generateJoke = async (vibe: Vibe): Promise<Joke> => {
     });
 
     const text = response.text;
-    if (!text) throw new Error("Null frequency response.");
+    if (!text) throw new Error("Null matrix response.");
     return JSON.parse(text) as Joke;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Neural Error:", error);
-    throw new Error("Humor matrix unstable. Ensure API connection is established.");
+    throw new Error(error.message?.includes("API key") 
+      ? "API_KEY_AUTH_FAILED: Check environment variables." 
+      : "HUMOR_MATRIX_UNSTABLE: Please re-synchronize.");
   }
 };
 
-// --- Components ---
-
-const VibeSelector: React.FC<{ current: Vibe; onChange: (v: Vibe) => void }> = ({ current, onChange }) => {
-  const options = [
-    { id: Vibe.CLEVER, label: 'Clever', emoji: '🧠', color: 'bg-indigo-500' },
-    { id: Vibe.WITTY, label: 'Witty', emoji: '✨', color: 'bg-cyan-500' },
-    { id: Vibe.ABSURD, label: 'Absurd', emoji: '🌀', color: 'bg-orange-500' },
-    { id: Vibe.WHOLESOME, label: 'Warm', emoji: '❤️', color: 'bg-rose-500' },
-    { id: Vibe.SURPRISE, label: 'Surprise', emoji: '🎲', color: 'bg-violet-600' },
-  ];
-
-  return (
-    <div className="flex flex-wrap justify-center gap-3 px-4 py-6">
-      {options.map((opt) => (
-        <button
-          key={opt.id}
-          onClick={() => onChange(opt.id)}
-          className={`relative flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all duration-300 ${
-            current === opt.id
-              ? `text-white scale-105 shadow-xl`
-              : 'text-slate-400 hover:text-white bg-white/5 border border-white/5'
-          }`}
-        >
-          {current === opt.id && (
-            <div className={`absolute inset-0 ${opt.color} rounded-full -z-10 animate-pulse opacity-40`}></div>
-          )}
-          {current === opt.id && (
-            <div className={`absolute inset-0 ${opt.color} rounded-full -z-20 transition-all`}></div>
-          )}
-          <span>{opt.emoji}</span>
-          <span>{opt.label}</span>
-        </button>
-      ))}
-    </div>
-  );
-};
-
-const JokeCard: React.FC<{ joke: Joke | null; loading: boolean }> = ({ joke, loading }) => {
-  const [showPunchline, setShowPunchline] = useState(false);
-  const [step, setStep] = useState(0);
-  const loadingSteps = ["Verifying sarcasm...", "Syncing laugh tracks...", "Injecting wit..."];
-
-  useEffect(() => {
-    if (loading) {
-      setShowPunchline(false);
-      const interval = setInterval(() => setStep(s => (s + 1) % loadingSteps.length), 800);
-      return () => clearInterval(interval);
-    }
-  }, [loading]);
-
-  useEffect(() => {
-    if (joke) {
-      const timer = setTimeout(() => setShowPunchline(true), 1200);
-      return () => clearTimeout(timer);
-    }
-  }, [joke]);
-
-  if (loading) return (
-    <div className="w-full max-w-2xl min-h-[300px] flex flex-col items-center justify-center p-12 glass rounded-[3rem] border-violet-500/20 shadow-2xl">
-      <div className="w-16 h-16 border-2 border-violet-500/20 border-t-violet-500 rounded-full animate-spin mb-6"></div>
-      <p className="font-mono text-violet-400 text-xs tracking-[0.3em] uppercase animate-pulse">{loadingSteps[step]}</p>
-    </div>
-  );
-
-  if (!joke) return (
-    <div className="w-full max-w-2xl min-h-[300px] flex flex-col items-center justify-center p-12 text-center glass rounded-[3rem] border-white/10">
-      <div className="text-5xl mb-6 opacity-50 select-none">⚡</div>
-      <h2 className="text-3xl font-display font-bold text-white mb-2">Matrix Idle.</h2>
-      <p className="text-slate-400 max-w-xs mx-auto">Select a frequency and initialize humor transmission.</p>
-    </div>
-  );
-
-  return (
-    <div className="w-full max-w-2xl p-12 md:p-16 glass rounded-[3rem] border-white/10 shadow-2xl relative group overflow-hidden transition-all hover:border-violet-500/30">
-      <div className="space-y-12">
-        <h3 className="text-2xl md:text-4xl font-display font-bold text-white leading-tight animate-in fade-in slide-in-from-bottom-4 duration-700">
-          {joke.setup}
-        </h3>
-        <div className={`transition-all duration-1000 transform ${showPunchline ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8 blur-sm'}`}>
-          <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-violet-500/40 to-transparent mb-8"></div>
-          <p className="text-2xl md:text-4xl font-display font-black bg-gradient-to-br from-white to-violet-300 bg-clip-text text-transparent tracking-tight leading-snug">
-            {joke.punchline}
-          </p>
-        </div>
-      </div>
-      <div className="absolute top-6 right-8 font-mono text-[9px] text-slate-700 uppercase tracking-widest">LOG_ID: {Math.random().toString(16).slice(2,8)}</div>
-    </div>
-  );
-};
-
 // --- App Root ---
-
 const App: React.FC = () => {
-  const [vibe, setVibe] = useState(Vibe.SURPRISE);
+  const [vibe, setVibe] = useState(Vibe.CLEVER);
   const [joke, setJoke] = useState<Joke | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [reveal, setReveal] = useState(false);
 
-  // Clear boot screen when app mounts
-  useEffect(() => {
-    const boot = document.getElementById('boot-screen');
-    if (boot) {
-      boot.style.opacity = '0';
-      setTimeout(() => { boot.style.display = 'none'; }, 500);
-    }
-  }, []);
+  const vibes = [
+    { id: Vibe.CLEVER, label: 'Clever', emoji: '🧠', color: 'bg-indigo-600' },
+    { id: Vibe.WITTY, label: 'Witty', emoji: '✨', color: 'bg-cyan-600' },
+    { id: Vibe.ABSURD, label: 'Absurd', emoji: '🌀', color: 'bg-orange-600' },
+    { id: Vibe.WHOLESOME, label: 'Warm', emoji: '❤️', color: 'bg-rose-600' },
+    { id: Vibe.SURPRISE, label: 'Surprise', emoji: '🎲', color: 'bg-violet-600' },
+  ];
 
   const fetchJoke = async () => {
     setLoading(true);
     setError(null);
+    setReveal(false);
     try {
       const result = await generateJoke(vibe);
       setJoke(result);
+      // Cinematic reveal delay
+      setTimeout(() => setReveal(true), 1200);
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -182,52 +96,120 @@ const App: React.FC = () => {
   };
 
   const copy = () => {
-    if (joke) navigator.clipboard.writeText(`${joke.setup}\n\n${joke.punchline}`);
+    if (joke) {
+      navigator.clipboard.writeText(`${joke.setup}\n\n${joke.punchline}\n\n— via GiggleGlitch`);
+    }
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6 relative">
-      <div className="fixed inset-0 -z-10 bg-[#020617]">
-        <div className="absolute top-[-10%] left-[-10%] w-[60vw] h-[60vh] bg-violet-600/5 blur-[120px] rounded-full animate-pulse"></div>
-        <div className="absolute bottom-[-10%] right-[-10%] w-[60vw] h-[60vh] bg-pink-600/5 blur-[120px] rounded-full animate-pulse [animation-delay:2s]"></div>
+    <div className="min-h-screen flex flex-col items-center justify-center p-6 md:p-12 relative overflow-y-auto">
+      {/* Dynamic Background */}
+      <div className="fixed inset-0 pointer-events-none -z-10">
+        <div className="absolute top-[-10%] left-[-10%] w-[70vw] h-[70vh] bg-violet-600/10 blur-[140px] rounded-full animate-blob"></div>
+        <div className="absolute bottom-[-10%] right-[-10%] w-[60vw] h-[60vh] bg-pink-600/10 blur-[140px] rounded-full animate-blob [animation-delay:2s]"></div>
       </div>
 
-      <header className="text-center mb-16 animate-in fade-in zoom-in duration-1000">
-        <h1 className="text-6xl md:text-8xl font-display font-black text-white mb-4 tracking-tighter leading-none select-none">
-          Giggle<span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-pink-400">Glitch</span>
+      <header className="text-center mb-12 animate-in fade-in zoom-in duration-1000">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-400 text-[9px] font-bold tracking-[0.4em] uppercase mb-10 select-none">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-violet-500"></span>
+          </span>
+          Neural Engine Operational
+        </div>
+        <h1 className="text-6xl md:text-9xl font-display font-black text-white mb-6 tracking-tighter leading-none select-none drop-shadow-2xl">
+          Giggle<span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-pink-400 to-cyan-400">Glitch</span>
         </h1>
-        <p className="text-slate-400 text-lg font-light tracking-wide">Neural-optimized humor for the modern human.</p>
+        <p className="text-slate-400 text-lg md:text-2xl font-light tracking-wide max-w-2xl mx-auto leading-relaxed opacity-80">
+          Precision-engineered humor for sophisticated biological units.
+        </p>
       </header>
 
-      <main className="w-full flex flex-col items-center gap-10">
-        <VibeSelector current={vibe} onChange={setVibe} />
-        
-        <JokeCard joke={joke} loading={loading} />
+      <main className="w-full flex flex-col items-center gap-10 max-w-4xl z-10">
+        <div className="flex flex-wrap justify-center gap-3">
+          {vibes.map((v) => (
+            <button
+              key={v.id}
+              onClick={() => setVibe(v.id as Vibe)}
+              className={`relative group flex items-center gap-2 px-6 py-3 rounded-full text-sm font-bold transition-all duration-300 ${
+                vibe === v.id ? 'text-white scale-105 shadow-2xl' : 'text-slate-400 hover:text-white bg-white/5 border border-white/5'
+              }`}
+            >
+              {vibe === v.id && <div className={`absolute inset-0 ${v.color} rounded-full -z-10 opacity-40 animate-pulse`}></div>}
+              {vibe === v.id && <div className={`absolute inset-0 ${v.color} rounded-full -z-20 shadow-[0_0_40px_rgba(139,92,246,0.3)]`}></div>}
+              <span className="text-xl leading-none group-hover:rotate-12 transition-transform">{v.emoji}</span>
+              <span className="uppercase text-[10px] tracking-[0.2em] font-black">{v.label}</span>
+            </button>
+          ))}
+        </div>
 
-        {error && (
-          <div className="px-6 py-3 bg-red-500/10 border border-red-500/30 rounded-2xl text-red-400 text-xs font-mono animate-bounce">
-            ⚠ {error}
+        {loading ? (
+          <div className="w-full max-w-2xl min-h-[300px] flex flex-col items-center justify-center p-12 glass rounded-[3.5rem] border-violet-500/20 shadow-2xl">
+            <div className="w-20 h-20 border-2 border-violet-500/20 border-t-violet-500 rounded-full animate-spin mb-8"></div>
+            <p className="font-mono text-violet-400 text-xs tracking-[0.5em] uppercase animate-pulse">Syncing Laugh Track...</p>
+          </div>
+        ) : joke ? (
+          <div className="w-full max-w-2xl p-12 md:p-20 glass rounded-[4rem] border-white/10 shadow-2xl relative transition-all duration-700 hover:border-violet-500/30 group">
+            <div className="space-y-16">
+              <h3 className="text-3xl md:text-5xl font-display font-bold text-white leading-tight tracking-tight animate-in fade-in slide-in-from-bottom-8 duration-700">
+                {joke.setup}
+              </h3>
+              <div className={`transition-all duration-1000 transform ${reveal ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12 blur-md'}`}>
+                <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-violet-500/40 to-transparent mb-12"></div>
+                <p className="text-3xl md:text-5xl font-display font-black bg-gradient-to-br from-white to-violet-300 bg-clip-text text-transparent italic leading-snug drop-shadow-lg">
+                  {joke.punchline}
+                </p>
+              </div>
+            </div>
+            <div className="absolute top-8 right-12 font-mono text-[9px] text-slate-800 uppercase tracking-widest pointer-events-none">SYNC_0x{Math.random().toString(16).slice(2,8)}</div>
+          </div>
+        ) : (
+          <div className="w-full max-w-2xl min-h-[300px] flex flex-col items-center justify-center p-12 text-center glass rounded-[3.5rem] border-white/10 opacity-30 select-none">
+            <div className="text-7xl mb-8 animate-bounce">⚡</div>
+            <h2 className="text-2xl font-display font-black text-white uppercase tracking-tighter">Neural Core Idle</h2>
           </div>
         )}
 
-        <div className="flex gap-4 w-full max-w-xs">
+        {error && (
+          <div className="px-8 py-4 bg-red-500/10 border border-red-500/20 rounded-full text-red-400 text-[10px] font-mono tracking-widest uppercase flex items-center gap-3 animate-in slide-in-from-bottom-4 duration-500">
+            <span className="w-2 h-2 rounded-full bg-red-500 animate-ping"></span>
+            {error}
+          </div>
+        )}
+
+        <div className="flex flex-col sm:flex-row gap-6 w-full max-w-md px-4">
           <button
             onClick={fetchJoke}
             disabled={loading}
-            className="flex-1 px-8 py-5 bg-white text-black font-black rounded-full hover:scale-105 active:scale-95 transition-all shadow-2xl uppercase tracking-[0.2em] text-[10px] disabled:opacity-50"
+            className="flex-1 group relative px-10 py-6 bg-white text-black font-black rounded-full hover:scale-105 active:scale-95 transition-all duration-300 shadow-[0_20px_60px_rgba(139,92,246,0.3)] disabled:opacity-50"
           >
-            {joke ? 'Regenerate' : 'Initialize'}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-violet-200/40 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+            <div className="flex items-center justify-center gap-4 relative z-10 tracking-[0.3em] uppercase text-[10px]">
+              {loading ? (
+                <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="group-hover:rotate-180 transition-transform duration-1000">
+                  <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"></path>
+                  <path d="M21 3v5h-5"></path>
+                </svg>
+              )}
+              {joke ? 'Initialize Next' : 'Launch Humor'}
+            </div>
           </button>
+          
           {joke && (
-            <button onClick={copy} className="p-5 glass text-white rounded-full hover:bg-white/10 transition-all border-white/10 active:scale-90" title="Copy to clipboard">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
+            <button onClick={copy} className="px-8 py-6 glass text-white rounded-full hover:bg-white/10 transition-all active:scale-90 border-white/10 shadow-xl flex items-center justify-center group" title="Copy to clipboard">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="group-hover:scale-110 transition-transform">
+                <rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect>
+                <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path>
+              </svg>
             </button>
           )}
         </div>
       </main>
 
-      <footer className="mt-20 opacity-30 text-[9px] font-mono tracking-[0.5em] text-white uppercase text-center">
-        Neural Core v3.5.2 • System: Operational
+      <footer className="mt-24 mb-12 opacity-30 text-[9px] font-mono tracking-[0.6em] text-white uppercase text-center select-none">
+        Neural Humor Matrix v3.5.2 • System Secure
       </footer>
     </div>
   );

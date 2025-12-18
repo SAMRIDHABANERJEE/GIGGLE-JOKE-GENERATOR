@@ -9,7 +9,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&family=Space+Grotesk:wght@300;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     
-    <!-- Babel Standalone for real-time TSX/React transpilation -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <style>
@@ -41,45 +40,25 @@
             opacity: 0.15;
         }
 
-        .init-loader {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            width: 100%;
-            background: #020617;
-            gap: 1.5rem;
-            position: fixed;
-            top: 0; left: 0; z-index: 100;
-            transition: opacity 0.5s ease-out, visibility 0.5s;
-        }
-
         .glass {
             background: rgba(15, 23, 42, 0.6);
-            backdrop-filter: blur(20px);
+            backdrop-filter: blur(24px);
             border: 1px solid rgba(255, 255, 255, 0.08);
         }
 
-        @keyframes spin { to { transform: rotate(360deg); } }
-        @keyframes pulse-slow { 0%, 100% { opacity: 0.3; } 50% { opacity: 0.8; } }
-        
-        .loading-ring {
-            width: 50px;
-            height: 50px;
-            border: 3px solid rgba(139, 92, 246, 0.1);
-            border-top-color: #8b5cf6;
-            border-radius: 50%;
-            animation: spin 0.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+        @keyframes blob-shift {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(30px, -50px) scale(1.1); }
+            66% { transform: translate(-20px, 20px) scale(0.9); }
+        }
+
+        .animate-blob {
+            animation: blob-shift 10s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
         }
     </style>
 
     <script>
-        /**
-         * Robust process shim: 
-         * We ensure window.process.env exists without overwriting values 
-         * that might be injected by the hosting environment.
-         */
+        // Ensure process.env is available for the SDK without overwriting injected values
         window.process = window.process || {};
         window.process.env = window.process.env || {};
     </script>
@@ -99,15 +78,7 @@
 </head>
 <body class="scanlines">
     <div id="root"></div>
-    
-    <div class="init-loader" id="boot-screen">
-        <div class="loading-ring"></div>
-        <div style="text-align: center;">
-            <p style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #8b5cf6; text-transform: uppercase; letter-spacing: 0.3em; animation: pulse-slow 2s infinite;">GiggleGlitch_v3.5_Booting...</p>
-        </div>
-    </div>
-
-    <!-- Consolidated application logic -->
+    <!-- Combined entry point to fix performance and module resolution issues -->
     <script type="text/babel" data-type="module" src="index.tsx" data-presets="typescript,react"></script>
 </body>
 </html>
