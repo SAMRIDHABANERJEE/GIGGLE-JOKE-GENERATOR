@@ -8,29 +8,31 @@ interface VibeSelectorProps {
 
 export const VibeSelector: React.FC<VibeSelectorProps> = ({ currentVibe, onVibeChange }) => {
   const vibes = [
-    { id: Vibe.CLEVER, label: '🧠 Clever', color: 'from-violet-600 to-indigo-600' },
-    { id: Vibe.WITTY, label: '✨ Witty', color: 'from-blue-600 to-cyan-600' },
-    { id: Vibe.ABSURD, label: '🌀 Absurd', color: 'from-orange-600 to-amber-600' },
-    { id: Vibe.WHOLESOME, label: '❤️ Warm', color: 'from-pink-600 to-rose-600' },
-    { id: Vibe.SURPRISE, label: '🎲 Surprise', color: 'from-emerald-600 to-teal-600' },
+    { id: Vibe.CLEVER, label: 'Clever', emoji: '🧠', color: 'bg-indigo-500' },
+    { id: Vibe.WITTY, label: 'Witty', emoji: '✨', color: 'bg-cyan-500' },
+    { id: Vibe.ABSURD, label: 'Absurd', emoji: '🌀', color: 'bg-orange-500' },
+    { id: Vibe.WHOLESOME, label: 'Warm', emoji: '❤️', color: 'bg-rose-500' },
+    { id: Vibe.SURPRISE, label: 'Surprise', emoji: '🎲', color: 'bg-violet-600' },
   ];
 
   return (
-    <div className="flex flex-wrap justify-center gap-2 px-4">
+    <div className="flex flex-wrap justify-center gap-3 px-4 py-6 mb-4">
       {vibes.map((v) => (
         <button
           key={v.id}
           onClick={() => onVibeChange(v.id)}
-          className={`relative overflow-hidden px-5 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 border ${
+          className={`group relative flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-bold transition-all duration-300 ${
             currentVibe === v.id
-              ? `text-white border-transparent shadow-[0_0_20px_rgba(139,92,246,0.3)] scale-105`
-              : 'bg-white/5 text-slate-400 border-white/10 hover:border-white/20 hover:text-white'
+              ? `text-white scale-105 shadow-[0_0_20px_rgba(139,92,246,0.3)]`
+              : 'text-slate-400 hover:text-white hover:bg-white/5 border border-white/5'
           }`}
         >
           {currentVibe === v.id && (
-            <div className={`absolute inset-0 bg-gradient-to-br ${v.color} -z-10`} />
+            <div className={`absolute inset-0 ${v.color} rounded-full -z-10 animate-pulse opacity-20`}></div>
           )}
-          <span className="relative z-10">{v.label}</span>
+          <div className={`absolute inset-0 ${v.color} rounded-full -z-20 transition-opacity ${currentVibe === v.id ? 'opacity-100' : 'opacity-0'}`}></div>
+          <span className="text-lg">{v.emoji}</span>
+          <span>{v.label}</span>
         </button>
       ))}
     </div>

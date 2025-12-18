@@ -11,9 +11,17 @@ export enum Vibe {
   SURPRISE = 'surprise'
 }
 
+export interface VibeTheme {
+  primary: string;
+  accent: string;
+  bgGradient: string;
+  icon: string;
+}
+
 export interface GeneratorState {
   joke: Joke | null;
   loading: boolean;
   error: string | null;
   vibe: Vibe;
+  isFirstJoke: boolean;
 }

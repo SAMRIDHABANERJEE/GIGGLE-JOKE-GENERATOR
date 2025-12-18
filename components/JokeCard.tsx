@@ -7,88 +7,91 @@ interface JokeCardProps {
 }
 
 export const JokeCard: React.FC<JokeCardProps> = ({ joke, loading }) => {
-  const [showPunchline, setShowPunchline] = useState(false);
-  const [loadingText, setLoadingText] = useState("Scanning humor matrix...");
+  const [revealPunchline, setRevealPunchline] = useState(false);
+  const [loadingStep, setLoadingStep] = useState(0);
+
+  const steps = [
+    "Injecting sarcasm...",
+    "Verifying punchline safety...",
+    "Synchronizing laugh tracks...",
+    "Finalizing delivery style..."
+  ];
 
   useEffect(() => {
     if (loading) {
-      const phrases = [
-        "Analyzing funny particles...",
-        "Compiling punchlines...",
-        "Debugging bad moods...",
-        "Optimizing delivery...",
-        "Consulting the giggle-bot..."
-      ];
-      let i = 0;
+      setRevealPunchline(false);
       const interval = setInterval(() => {
-        setLoadingText(phrases[i % phrases.length]);
-        i++;
-      }, 800);
+        setLoadingStep(s => (s + 1) % steps.length);
+      }, 700);
       return () => clearInterval(interval);
     }
   }, [loading]);
 
   useEffect(() => {
     if (joke) {
-      setShowPunchline(false);
-      const timer = setTimeout(() => setShowPunchline(true), 1200);
+      const timer = setTimeout(() => setRevealPunchline(true), 1500);
       return () => clearTimeout(timer);
     }
   }, [joke]);
 
   if (loading) {
     return (
-      <div className="w-full max-w-xl min-h-[320px] flex flex-col items-center justify-center p-8 space-y-8 glass rounded-[2rem] glow-border">
-        <div className="relative">
-          <div className="w-20 h-20 border-4 border-violet-500/20 border-t-violet-500 rounded-full animate-spin"></div>
-          <div className="absolute inset-0 w-20 h-20 border-4 border-pink-500/20 border-b-pink-500 rounded-full animate-spin [animation-direction:reverse] [animation-duration:1.5s]"></div>
+      <div className="w-full max-w-2xl min-h-[350px] flex flex-col items-center justify-center p-10 glass rounded-[3rem] border-violet-500/20 shadow-2xl relative overflow-hidden">
+        <div className="relative mb-8">
+          <div className="w-24 h-24 border-2 border-violet-500/20 border-t-violet-500 rounded-full animate-spin"></div>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-12 h-12 bg-violet-500/20 rounded-full animate-pulse"></div>
+          </div>
         </div>
-        <p className="text-violet-300 font-display font-medium text-lg animate-pulse">{loadingText}</p>
+        <p className="font-mono text-violet-400 text-sm tracking-[0.2em] uppercase animate-pulse">
+          {steps[loadingStep]}
+        </p>
+        <div className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-violet-600 to-pink-600 animate-[progress_2s_infinite]"></div>
       </div>
     );
   }
 
   if (!joke) {
     return (
-      <div className="w-full max-w-xl min-h-[320px] flex flex-col items-center justify-center p-12 text-center glass rounded-[2rem] border-white/5 group">
-        <div className="w-20 h-20 bg-violet-500/10 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-          <span className="text-4xl">⚡</span>
+      <div className="w-full max-w-2xl min-h-[350px] flex flex-col items-center justify-center p-12 text-center glass rounded-[3rem] border-white/10 group cursor-default">
+        <div className="mb-8 p-6 rounded-full bg-violet-600/10 group-hover:bg-violet-600/20 transition-colors duration-700">
+           <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="text-violet-500 animate-bounce">
+             <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+           </svg>
         </div>
-        <h2 className="text-3xl font-display font-bold text-white mb-4">Ready to Glitch?</h2>
-        <p className="text-slate-400 max-w-xs leading-relaxed">
-          The AI is primed with high-voltage humor. Pick a vibe and let's go.
+        <h2 className="text-4xl font-display font-extrabold text-white mb-4 tracking-tight">System Idle.</h2>
+        <p className="text-slate-400 max-w-xs mx-auto leading-relaxed">
+          The humor matrix is empty. Select a frequency to begin neural transmission.
         </p>
       </div>
     );
   }
 
   return (
-    <div className="w-full max-w-xl p-8 md:p-12 glass rounded-[2.5rem] glow-border shadow-2xl relative overflow-hidden group">
-      <div className="space-y-10 relative z-10">
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-          <div className="flex items-center gap-2 mb-4">
-             <div className="h-[1px] w-8 bg-violet-500"></div>
-             <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-violet-400">The Setup</span>
-          </div>
-          <h2 className="text-2xl md:text-3xl font-display font-semibold text-white leading-snug">
+    <div className="w-full max-w-2xl p-10 md:p-16 glass rounded-[3rem] border-white/10 shadow-2xl relative group transition-all duration-500 hover:border-violet-500/30">
+      <div className="space-y-12">
+        <div className="relative">
+          <span className="absolute -left-6 -top-2 text-violet-500/40 text-6xl font-serif select-none">“</span>
+          <h3 className="text-2xl md:text-4xl font-display font-bold text-white leading-tight animate-in fade-in slide-in-from-bottom-6 duration-700">
             {joke.setup}
-          </h2>
+          </h3>
         </div>
 
-        <div className={`transition-all duration-1000 delay-300 transform ${showPunchline ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-4 scale-95'}`}>
-          <div className="flex items-center gap-2 mb-4">
-             <div className="h-[1px] w-8 bg-pink-500"></div>
-             <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-pink-400">The Glitch</span>
+        <div className={`transition-all duration-1000 transform ${revealPunchline ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8 blur-sm'}`}>
+          <div className="flex items-center gap-4 mb-4">
+             <div className="h-[2px] flex-1 bg-gradient-to-r from-violet-600/0 via-violet-600/50 to-violet-600/0"></div>
+             <span className="text-[10px] font-mono font-bold tracking-[0.3em] text-violet-500 uppercase">Neural Glitch</span>
+             <div className="h-[2px] flex-1 bg-gradient-to-r from-violet-600/0 via-violet-600/50 to-violet-600/0"></div>
           </div>
-          <p className="text-xl md:text-3xl font-display font-bold bg-gradient-to-br from-white via-violet-200 to-pink-300 bg-clip-text text-transparent italic leading-tight">
-            "{joke.punchline}"
+          <p className="text-2xl md:text-4xl font-display font-black bg-gradient-to-br from-white via-violet-100 to-pink-200 bg-clip-text text-transparent italic tracking-tight leading-snug text-glow">
+            {joke.punchline}
           </p>
         </div>
       </div>
 
-      {/* Decorative elements */}
-      <div className="absolute top-0 right-0 p-4 opacity-20 text-4xl select-none">✨</div>
-      <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-violet-600/10 blur-[60px] rounded-full group-hover:bg-violet-600/20 transition-colors"></div>
+      <div className="absolute top-6 right-8 text-[10px] font-mono text-slate-600 uppercase tracking-widest pointer-events-none opacity-50">
+        Packet ID: {Math.random().toString(16).slice(2, 8)}
+      </div>
     </div>
   );
 };
