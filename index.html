@@ -46,35 +46,33 @@
             box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
         }
 
-        @keyframes glitch-skew {
-            0% { transform: skew(0deg); }
-            20% { transform: skew(-5deg); }
-            40% { transform: skew(5deg); }
-            60% { transform: skew(-2deg); }
-            100% { transform: skew(0deg); }
+        @keyframes pulse-slow {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.6; }
         }
 
-        .glitch-text {
-            position: relative;
-            display: inline-block;
-        }
-        .glitch-text:hover {
-            animation: glitch-skew 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
-        }
-
-        .glow-hover {
-            transition: all 0.4s ease;
-        }
-        .glow-hover:hover {
-            box-shadow: 0 0 30px rgba(139, 92, 246, 0.4);
-            transform: translateY(-2px);
+        .init-loader {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            width: 100%;
+            gap: 1rem;
         }
 
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #020617; }
         ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #334155; }
     </style>
+    <!-- Shim process for direct browser deployment -->
+    <script>
+        window.process = {
+            env: {
+                API_KEY: "" // Will be injected by the environment or replaced
+            }
+        };
+    </script>
     <script type="importmap">
     {
       "imports": {
@@ -87,7 +85,16 @@
     </script>
 </head>
 <body class="scanlines">
-    <div id="root"></div>
-    <script type="module" src="index.tsx"></script>
+    <div id="root">
+        <!-- Fallback while the app initializes -->
+        <div class="init-loader">
+            <div style="width: 40px; height: 40px; border: 2px solid #8b5cf6; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+            <p style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #8b5cf6; text-transform: uppercase; letter-spacing: 0.2em; animation: pulse-slow 2s infinite;">Initialising Neural Humor...</p>
+        </div>
+    </div>
+    <style>
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+    <script type="module" src="./index.tsx"></script>
 </body>
 </html>

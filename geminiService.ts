@@ -2,9 +2,13 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { Joke, Vibe } from "./types.ts";
 
 export const generateJoke = async (vibe: Vibe): Promise<Joke> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const apiKey = (window as any).process?.env?.API_KEY || "";
   
-  // Use pro model for better creative quality if requested, but flash is great for jokes too.
+  if (!apiKey) {
+    throw new Error("API Key missing. Please check your environment configuration.");
+  }
+
+  const ai = new GoogleGenAI({ apiKey });
   const model = 'gemini-3-flash-preview';
   
   const personaMap: Record<string, string> = {
@@ -34,15 +38,15 @@ export const generateJoke = async (vibe: Vibe): Promise<Joke> => {
   try {
     const response = await ai.models.generateContent({
       model: model,
-      contents: `Generate a ${selectedVibe} joke. Make it memorable.`,
+      contents: `Generate a ${selectedVibe} joke.`,
       config: {
         systemInstruction,
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
           properties: {
-            setup: { type: Type.STRING, description: "The hook or first line of the joke." },
-            punchline: { type: Type.STRING, description: "The surprising twist or second line." }
+            setup: { type: Type.STRING },
+            punchline: { type: Type.STRING }
           },
           required: ["setup", "punchline"]
         }
@@ -50,11 +54,11 @@ export const generateJoke = async (vibe: Vibe): Promise<Joke> => {
     });
 
     const text = response.text;
-    if (!text) throw new Error("The humor module failed to respond.");
+    if (!text) throw new Error("Empty response from AI.");
     
     return JSON.parse(text) as Joke;
   } catch (error) {
     console.error("Gemini Error:", error);
-    throw new Error("Neural humor link interrupted. Recalibrating comedy circuits...");
+    throw new Error("The humor link timed out. Recalibrating comedy circuits...");
   }
 };
