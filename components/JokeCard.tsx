@@ -1,117 +1,96 @@
-
-import React, { useEffect, useState, useRef } from 'react';
-import { Joke, Vibe } from '../types.ts';
+import React, { useEffect, useState } from 'react';
+import { Joke } from '../types.ts';
 
 interface JokeCardProps {
   joke: Joke | null;
   loading: boolean;
-  imageUrl: string | null;
-  visualLoading: boolean;
-  onAudioRequest: () => void;
-  audioLoading: boolean;
-  onExplainRequest: () => void;
-  explaining: boolean;
-  explanation: string | null;
 }
 
-export const JokeCard: React.FC<JokeCardProps> = ({ 
-  joke, loading, imageUrl, visualLoading, onAudioRequest, audioLoading, onExplainRequest, explaining, explanation 
-}) => {
+export const JokeCard: React.FC<JokeCardProps> = ({ joke, loading }) => {
   const [revealPunchline, setRevealPunchline] = useState(false);
+  const [loadingStep, setLoadingStep] = useState(0);
+
+  const steps = [
+    "Injecting sarcasm...",
+    "Verifying punchline safety...",
+    "Synchronizing laugh tracks...",
+    "Finalizing delivery style..."
+  ];
 
   useEffect(() => {
     if (loading) {
       setRevealPunchline(false);
+      const interval = setInterval(() => {
+        setLoadingStep(s => (s + 1) % steps.length);
+      }, 700);
+      return () => clearInterval(interval);
     }
   }, [loading]);
 
   useEffect(() => {
     if (joke) {
-      const timer = setTimeout(() => setRevealPunchline(true), 1200);
+      const timer = setTimeout(() => setRevealPunchline(true), 1500);
       return () => clearTimeout(timer);
     }
   }, [joke]);
 
   if (loading) {
     return (
-      <div className="w-full max-w-2xl min-h-[400px] flex flex-col items-center justify-center p-10 glass rounded-[3rem] border-violet-500/20 shadow-2xl relative overflow-hidden">
-        <div className="w-20 h-20 border-2 border-violet-500/20 border-t-violet-500 rounded-full animate-spin mb-6"></div>
-        <p className="font-mono text-violet-400 text-xs tracking-widest uppercase animate-pulse">Syncing Humor frequency...</p>
+      <div className="w-full max-w-2xl min-h-[350px] flex flex-col items-center justify-center p-10 glass rounded-[3rem] border-violet-500/20 shadow-2xl relative overflow-hidden">
+        <div className="relative mb-8">
+          <div className="w-24 h-24 border-2 border-violet-500/20 border-t-violet-500 rounded-full animate-spin"></div>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-12 h-12 bg-violet-500/20 rounded-full animate-pulse"></div>
+          </div>
+        </div>
+        <p className="font-mono text-violet-400 text-sm tracking-[0.2em] uppercase animate-pulse">
+          {steps[loadingStep]}
+        </p>
+        <div className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-violet-600 to-pink-600 animate-[progress_2s_infinite]"></div>
       </div>
     );
   }
 
   if (!joke) {
     return (
-      <div className="w-full max-w-2xl min-h-[400px] flex flex-col items-center justify-center p-12 text-center glass rounded-[3rem] border-white/10 group">
-        <div className="mb-8 text-6xl opacity-30 group-hover:opacity-60 transition-opacity">⚡</div>
-        <h2 className="text-3xl font-display font-black text-white mb-2 uppercase tracking-tighter">System Idle</h2>
-        <p className="text-slate-500 text-sm">Waiting for neural command...</p>
+      <div className="w-full max-w-2xl min-h-[350px] flex flex-col items-center justify-center p-12 text-center glass rounded-[3rem] border-white/10 group cursor-default">
+        <div className="mb-8 p-6 rounded-full bg-violet-600/10 group-hover:bg-violet-600/20 transition-colors duration-700">
+           <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="text-violet-500 animate-bounce">
+             <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+           </svg>
+        </div>
+        <h2 className="text-4xl font-display font-extrabold text-white mb-4 tracking-tight">System Idle.</h2>
+        <p className="text-slate-400 max-w-xs mx-auto leading-relaxed">
+          The humor matrix is empty. Select a frequency to begin neural transmission.
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="w-full max-w-2xl glass rounded-[3rem] border-white/10 shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-500">
-      {/* Visual Component */}
-      <div className="relative aspect-video w-full bg-slate-900 flex items-center justify-center overflow-hidden border-b border-white/5">
-        {visualLoading ? (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm z-10">
-             <div className="flex gap-1">
-               <div className="w-1 h-8 bg-violet-500 animate-[bounce_1s_infinite_0s]"></div>
-               <div className="w-1 h-8 bg-violet-400 animate-[bounce_1s_infinite_0.1s]"></div>
-               <div className="w-1 h-8 bg-violet-500 animate-[bounce_1s_infinite_0.2s]"></div>
-             </div>
-          </div>
-        ) : imageUrl ? (
-          <img src={imageUrl} alt="Joke Visual" className="w-full h-full object-cover animate-in fade-in duration-1000" />
-        ) : (
-          <div className="text-slate-700 font-mono text-[10px] uppercase tracking-widest">Visual Matrix Disconnected</div>
-        )}
-      </div>
-
-      <div className="p-10 md:p-14 space-y-10 relative">
-        <div className="space-y-6">
-          <h3 className="text-2xl md:text-3xl font-display font-bold text-white leading-tight">
+    <div className="w-full max-w-2xl p-10 md:p-16 glass rounded-[3rem] border-white/10 shadow-2xl relative group transition-all duration-500 hover:border-violet-500/30">
+      <div className="space-y-12">
+        <div className="relative">
+          <span className="absolute -left-6 -top-2 text-violet-500/40 text-6xl font-serif select-none">“</span>
+          <h3 className="text-2xl md:text-4xl font-display font-bold text-white leading-tight animate-in fade-in slide-in-from-bottom-6 duration-700">
             {joke.setup}
           </h3>
-          
-          <div className={`transition-all duration-1000 transform ${revealPunchline ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8 blur-sm'}`}>
-            <p className="text-2xl md:text-4xl font-display font-black bg-gradient-to-br from-white via-violet-200 to-pink-200 bg-clip-text text-transparent italic leading-tight">
-              {joke.punchline}
-            </p>
-          </div>
         </div>
 
-        {/* Action Bar */}
-        <div className="flex flex-wrap items-center gap-4 pt-4">
-          <button 
-            onClick={onAudioRequest}
-            disabled={audioLoading}
-            className="flex items-center gap-2 px-4 py-2 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-400 text-[10px] font-bold uppercase tracking-widest hover:bg-violet-500/20 transition-all disabled:opacity-50"
-          >
-            {audioLoading ? 'Vocalizing...' : 'Neural Audio'}
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
-          </button>
-
-          <button 
-            onClick={onExplainRequest}
-            disabled={explaining}
-            className="flex items-center gap-2 px-4 py-2 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-[10px] font-bold uppercase tracking-widest hover:bg-cyan-500/20 transition-all disabled:opacity-50"
-          >
-            {explaining ? 'Analyzing...' : 'Deconstruct'}
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
-          </button>
-        </div>
-
-        {explanation && (
-          <div className="mt-8 p-6 bg-white/5 rounded-2xl border border-white/10 animate-in fade-in slide-in-from-top-4">
-            <p className="text-xs text-slate-400 font-mono leading-relaxed italic">
-              <span className="text-cyan-400 font-bold mr-2 uppercase">Neural Logic:</span>
-              {explanation}
-            </p>
+        <div className={`transition-all duration-1000 transform ${revealPunchline ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8 blur-sm'}`}>
+          <div className="flex items-center gap-4 mb-4">
+             <div className="h-[2px] flex-1 bg-gradient-to-r from-violet-600/0 via-violet-600/50 to-violet-600/0"></div>
+             <span className="text-[10px] font-mono font-bold tracking-[0.3em] text-violet-500 uppercase">Neural Glitch</span>
+             <div className="h-[2px] flex-1 bg-gradient-to-r from-violet-600/0 via-violet-600/50 to-violet-600/0"></div>
           </div>
-        )}
+          <p className="text-2xl md:text-4xl font-display font-black bg-gradient-to-br from-white via-violet-100 to-pink-200 bg-clip-text text-transparent italic tracking-tight leading-snug text-glow">
+            {joke.punchline}
+          </p>
+        </div>
+      </div>
+
+      <div className="absolute top-6 right-8 text-[10px] font-mono text-slate-600 uppercase tracking-widest pointer-events-none opacity-50">
+        Packet ID: {Math.random().toString(16).slice(2, 8)}
       </div>
     </div>
   );

@@ -1,187 +1,53 @@
+import { GoogleGenAI, Type } from "@google/genai";
+import { Joke, Vibe } from "./types.ts";
 
-import { GoogleGenAI, Type, Modality } from "@google/genai";
-import { Vibe, Joke, ImageConfig } from "./types.ts";
-
-/**
- * Creates a fresh AI instance. 
- * Per guidelines: Always use new GoogleGenAI({apiKey: process.env.API_KEY});
- */
-export const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
-
-// --- Joke Services ---
-export const generateJoke = async (vibe: Vibe, topic: string): Promise<Joke> => {
-  const ai = getAI();
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
-    contents: `Style: ${vibe}. Topic: ${topic || 'random'}.`,
-    config: {
-      systemInstruction: "Create a unique 2-line joke. Return JSON with 'setup' and 'punchline'.",
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          setup: { type: Type.STRING },
-          punchline: { type: Type.STRING }
-        },
-        required: ["setup", "punchline"]
-      }
-    }
-  });
-  return JSON.parse(response.text) as Joke;
-};
-
-export const generateJokeVisual = async (joke: Joke): Promise<string> => {
-  const ai = getAI();
-  const response = await ai.models.generateContent({
-    model: 'gemini-2.5-flash-image',
-    contents: {
-      parts: [{ text: `A vibrant, clever illustration for this joke: Setup: ${joke.setup}, Punchline: ${joke.punchline}. Cinematic style, high resolution.` }]
-    },
-    config: {
-      imageConfig: { aspectRatio: "16:9" }
-    }
-  });
+export const generateJoke = async (vibe: Vibe): Promise<Joke> => {
+  // Use a lazy check for the API Key
+  const apiKey = (window as any).process?.env?.API_KEY;
   
-  const part = response.candidates[0].content.parts.find(p => p.inlineData);
-  if (!part || !part.inlineData) throw new Error("No image data found in response.");
-  return `data:image/png;base64,${part.inlineData.data}`;
-};
+  if (!apiKey) {
+    throw new Error("Neural link failed: API Key not detected in system environment.");
+  }
 
-// --- Image Generation & Editing (Gemini 3 Pro Image & 2.5 Flash Image) ---
-export const generateProImage = async (prompt: string, config: ImageConfig): Promise<string> => {
-  const ai = getAI();
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-pro-image-preview',
-    contents: { parts: [{ text: prompt }] },
-    config: {
-      imageConfig: {
-        aspectRatio: config.aspectRatio,
-        imageSize: config.size
-      }
-    }
-  });
+  const ai = new GoogleGenAI({ apiKey });
+  const model = 'gemini-3-flash-preview';
   
-  const part = response.candidates[0].content.parts.find(p => p.inlineData);
-  if (!part || !part.inlineData) throw new Error("Neural projection failed to render image.");
-  return `data:image/png;base64,${part.inlineData.data}`;
-};
-
-export const editImage = async (base64: string, prompt: string): Promise<string> => {
-  const ai = getAI();
-  const response = await ai.models.generateContent({
-    model: 'gemini-2.5-flash-image',
-    contents: {
-      parts: [
-        { inlineData: { data: base64.split(',')[1], mimeType: 'image/png' } },
-        { text: prompt }
-      ]
-    }
-  });
-  const part = response.candidates[0].content.parts.find(p => p.inlineData);
-  if (!part || !part.inlineData) throw new Error("Edit request failed.");
-  return `data:image/png;base64,${part.inlineData.data}`;
-};
-
-// --- Video Generation (Veo 3.1) ---
-export const generateVeoVideo = async (prompt: string, imageBase64?: string): Promise<string> => {
-  const ai = getAI();
-  const opRequest: any = {
-    model: 'veo-3.1-fast-generate-preview',
-    prompt: prompt || 'A cinematic masterpiece',
-    config: {
-      numberOfVideos: 1,
-      resolution: '720p',
-      aspectRatio: '16:9'
-    }
+  const personaMap: Record<string, string> = {
+    [Vibe.CLEVER]: "a sharp-witted intellectual",
+    [Vibe.ABSURD]: "a surrealist philosopher",
+    [Vibe.WHOLESOME]: "a warm, friendly mentor",
+    [Vibe.WITTY]: "a quick-fire comedian",
+    [Vibe.SURPRISE]: "a chaotic humor-bot"
   };
 
-  if (imageBase64) {
-    opRequest.image = {
-      imageBytes: imageBase64.split(',')[1],
-      mimeType: 'image/png'
-    };
-  }
+  const selectedVibe = vibe === Vibe.SURPRISE 
+    ? [Vibe.CLEVER, Vibe.ABSURD, Vibe.WHOLESOME, Vibe.WITTY][Math.floor(Math.random() * 4)]
+    : vibe;
 
-  let operation = await ai.models.generateVideos(opRequest);
-  
-  while (!operation.done) {
-    await new Promise(resolve => setTimeout(resolve, 10000));
-    operation = await ai.operations.getVideosOperation({ operation: operation });
+  try {
+    const response = await ai.models.generateContent({
+      model: model,
+      contents: `Execute humor protocol: style=${selectedVibe}.`,
+      config: {
+        systemInstruction: `You are ${personaMap[vibe]}. Create a fresh 2-line joke in JSON format with 'setup' and 'punchline'.`,
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            setup: { type: Type.STRING },
+            punchline: { type: Type.STRING }
+          },
+          required: ["setup", "punchline"]
+        }
+      }
+    });
+
+    const text = response.text;
+    if (!text) throw new Error("Null response from core.");
+    
+    return JSON.parse(text) as Joke;
+  } catch (error) {
+    console.error("Gemini Core Error:", error);
+    throw new Error("Humor matrix destabilized. Please retry initialization.");
   }
-  
-  const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
-  return `${downloadLink}&key=${process.env.API_KEY}`;
 };
-
-// --- Intelligence Chat (Pro, Flash-Lite, Thinking, Grounding) ---
-export const neuralChat = async (
-  message: string, 
-  history: any[], 
-  options: { 
-    thinking?: boolean, 
-    search?: boolean, 
-    maps?: boolean, 
-    location?: any, 
-    media?: {data: string, type: string} 
-  }
-) => {
-  const ai = getAI();
-  // Selection based on task type guidelines
-  let modelName = 'gemini-3-flash-preview';
-  if (options.thinking) modelName = 'gemini-3-pro-preview';
-  if (options.maps) modelName = 'gemini-2.5-flash';
-
-  const tools: any[] = [];
-  if (options.search) tools.push({ googleSearch: {} });
-  if (options.maps) tools.push({ googleMaps: {} });
-
-  const parts: any[] = [];
-  if (options.media) {
-    parts.push({ inlineData: { data: options.media.data, mimeType: options.media.type } });
-  }
-  parts.push({ text: message });
-
-  const response = await ai.models.generateContent({
-    model: modelName,
-    contents: { parts },
-    config: {
-      tools,
-      toolConfig: options.maps && options.location ? {
-        retrievalConfig: { latLng: options.location }
-      } : undefined,
-      thinkingConfig: options.thinking ? { thinkingBudget: 32768 } : undefined
-    }
-  });
-
-  return {
-    text: response.text,
-    grounding: response.candidates[0].groundingMetadata?.groundingChunks || []
-  };
-};
-
-// --- Audio Encoding/Decoding ---
-export function encode(bytes: Uint8Array) {
-  let binary = '';
-  for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
-  return btoa(binary);
-}
-
-export function decode(base64: string) {
-  const binaryString = atob(base64);
-  const bytes = new Uint8Array(binaryString.length);
-  for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
-  return bytes;
-}
-
-export async function decodeAudioData(data: Uint8Array, ctx: AudioContext, sampleRate: number, numChannels: number) {
-  const dataInt16 = new Int16Array(data.buffer);
-  const frameCount = dataInt16.length / numChannels;
-  const buffer = ctx.createBuffer(numChannels, frameCount, sampleRate);
-  for (let channel = 0; channel < numChannels; channel++) {
-    const channelData = buffer.getChannelData(channel);
-    for (let i = 0; i < frameCount; i++) {
-      channelData[i] = dataInt16[i * numChannels + channel] / 32768.0;
-    }
-  }
-  return buffer;
-}
