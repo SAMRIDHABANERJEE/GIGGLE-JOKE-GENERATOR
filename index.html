@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -41,6 +42,7 @@
             opacity: 0.2;
         }
 
+        /* Styles for the initial loader */
         .init-loader {
             display: flex;
             flex-direction: column;
@@ -80,6 +82,12 @@
                 API_KEY: "" // Handled by injection or defaults to ""
             }
         };
+        // Ensure window.process.env is writable if it needs to be updated by the aistudio interface
+        Object.defineProperty(window.process, 'env', {
+            value: window.process.env,
+            writable: true,
+            configurable: true,
+        });
     </script>
 
     <script type="importmap">
@@ -96,14 +104,15 @@
 </script>
 </head>
 <body class="scanlines">
-    <div id="root">
-        <div class="init-loader" id="boot-screen">
-            <div class="loading-ring"></div>
-            <div style="text-align: center;">
-                <p style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #8b5cf6; text-transform: uppercase; letter-spacing: 0.3em; animation: pulse-slow 2s infinite;">GiggleGlitch_v3.5_Booting...</p>
-            </div>
+    <!-- The static boot loader is now outside the React root div -->
+    <div id="boot-screen" class="init-loader">
+        <div class="loading-ring"></div>
+        <div style="text-align: center;">
+            <p style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #8b5cf6; text-transform: uppercase; letter-spacing: 0.3em; animation: pulse-slow 2s infinite;">GiggleGlitch_v3.5_Booting...</p>
         </div>
     </div>
+    
+    <div id="root"></div> <!-- React's mount point -->
 
     <!-- index.tsx contains the entire app logic for zero-config GitHub Pages deployment -->
     <script type="text/babel" data-type="module" src="index.tsx" data-presets="typescript,react"></script>

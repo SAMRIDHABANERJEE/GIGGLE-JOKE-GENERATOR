@@ -1,5 +1,6 @@
+
 import React, { useEffect, useState } from 'react';
-import { Joke } from '../types.ts';
+import { Joke } from '../types'; // Removed .ts
 
 interface JokeCardProps {
   joke: Joke | null;

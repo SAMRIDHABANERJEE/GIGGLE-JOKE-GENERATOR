@@ -1,5 +1,6 @@
+
 import React from 'react';
-import { Vibe } from '../types.ts';
+import { Vibe } from '../types'; // Removed .ts
 
 interface VibeSelectorProps {
   currentVibe: Vibe;

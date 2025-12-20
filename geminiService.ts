@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { Joke, Vibe } from "./types.ts";
+import { Joke, Vibe } from "./types"; // Removed .ts
 
 export const generateJoke = async (vibe: Vibe): Promise<Joke> => {
   // CRITICAL: Always create a new GoogleGenAI instance right before making an API call 
